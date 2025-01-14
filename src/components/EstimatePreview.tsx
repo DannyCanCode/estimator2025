@@ -18,6 +18,7 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
   const [shinglesMarkup, setShinglesMarkup] = useState(12);
   const [underlaymentMarkup, setUnderlaymentMarkup] = useState(12);
   const [acmMarkup, setAcmMarkup] = useState(12);
+  const [cdxPlywoodQuantity, setCdxPlywoodQuantity] = useState(1);
 
   const formatLengthMeasurement = (key: LengthMeasurementKey) => {
     const measurement = measurements.length_measurements?.[key];
@@ -58,6 +59,33 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
   const karnakTarRetailPrice = 58.33;  // Retail price per unit
   const karnakTarOurCost = 42.06;  // Our cost per unit
   const karnakTarUnitsNeeded = Math.ceil(totalSquares / 20);  // 1 unit per 20 squares
+  const cdxPlywoodRetailPrice = 125.00;  // Retail price per board
+  const cdxPlywoodOurCost = 100.00;  // Our cost per board
+  const cdxPlywoodCost = cdxPlywoodQuantity * cdxPlywoodRetailPrice;  // Using retail price for customer
+  const dumpsterRetailPrice = 687.50;  // Retail price per dumpster
+  const dumpsterOurCost = 550.00;  // Our cost per dumpster
+  const dumpsterUnitsNeeded = Math.ceil(totalSquares / 30);  // 1 dumpster per 30 squares
+  const dumpsterCost = dumpsterUnitsNeeded * dumpsterRetailPrice;  // Using retail price for customer
+
+  // Add permits and inspections constants
+  const permitsRetailPrice = 2500.00;  // Retail price per permit
+  const permitsOurCost = 2000.00;  // Our cost per permit
+  const permitsUnitsNeeded = 1;  // One permit needed for shingle roofs
+  const permitsCost = permitsUnitsNeeded * permitsRetailPrice;  // Using retail price for customer
+
+  // Add re-nailing constants
+  const reNailingRetailPrice = 0.00;  // No cost for demonstration
+  const reNailingOurCost = 0.00;  // No cost for demonstration
+  const reNailingUnitsNeeded = totalSquares;  // One unit per square
+
+  // Calculate pitch first
+  const pitch = measurements.predominant_pitch ? parseInt(measurements.predominant_pitch.split('/')[0]) : 6;
+  
+  // Calculate base installation cost based on pitch
+  const baseInstallationRetailPrice = pitch <= 7 ? 100.00 : pitch <= 9 ? 110.00 : 150.00;
+  const baseInstallationOurCost = pitch <= 7 ? 75.00 : pitch <= 9 ? 90.00 : 100.00;
+  const baseInstallationUnitsNeeded = totalSquares;  // 1 EA needed per square
+  const baseInstallationCost = baseInstallationUnitsNeeded * baseInstallationRetailPrice;  // Using retail price for customer
 
   // Calculate costs with markups
   const shinglesCost = totalSquares * shinglesBasePrice * (1 + shinglesMarkup / 100);
@@ -76,9 +104,8 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
     coilNailsCost + smallCoilNailsCost + plasticCapNailsCost + geocelSealantCost + karnakTarCost;
 
   // Calculate labor based on pitch
-  const pitch = measurements.predominant_pitch ? parseInt(measurements.predominant_pitch.split('/')[0]) : 6;
   const laborMultiplier = pitch <= 7 ? 1 : pitch <= 9 ? 1.2 : pitch <= 12 ? 1.5 : 2;
-  const laborCost = totalSquares * pricing.labor.base_installation.price * laborMultiplier;
+  const laborCost = baseInstallationCost + cdxPlywoodCost + dumpsterCost + permitsCost;
 
   // Total cost
   const totalCost = shinglesCost + underlaymentCost + ridgeCapsCost + laborCost;
@@ -90,6 +117,27 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
   console.log('Measurements Object:', measurements);
 
   const wastePercentage = Math.max(measurements.suggested_waste_percentage || 12, 12);
+
+  // Calculate base profits (difference between retail and our cost)
+  const materialBaseProfit = (
+    ((totalSquares * shinglesBasePrice) - (totalSquares * 121.68)) +  // GAF Timberline HDZ Shingles
+    ((underlaymentRollsNeeded * underlaymentRetailPrice) - (underlaymentRollsNeeded * 94.00)) +  // GAF Weatherwatch
+    ((acmGalvalumeDripEdgeQuantity * acmGalvalumeDripEdgeBasePrice) - (acmGalvalumeDripEdgeQuantity * 5.50)) +  // ACM Galvalume
+    ((coilNailsBoxesNeeded * coilNailsRetailPrice) - (coilNailsBoxesNeeded * coilNailsOurCost)) +  // Coil Nails 2 3/8"
+    ((smallCoilNailsBoxesNeeded * smallCoilNailsRetailPrice) - (smallCoilNailsBoxesNeeded * smallCoilNailsOurCost)) +  // Coil Nails 1 1/4"
+    ((plasticCapNailsBoxesNeeded * plasticCapNailsRetailPrice) - (plasticCapNailsBoxesNeeded * plasticCapNailsOurCost)) +  // Plastic Cap Nails
+    ((geocelSealantUnitsNeeded * geocelSealantRetailPrice) - (geocelSealantUnitsNeeded * geocelSealantOurCost)) +  // Geocel Sealant
+    ((karnakTarUnitsNeeded * karnakTarRetailPrice) - (karnakTarUnitsNeeded * karnakTarOurCost))  // Karnak Roof Tar
+  );
+
+  const laborBaseProfit = (
+    (baseInstallationCost - (baseInstallationUnitsNeeded * baseInstallationOurCost)) +
+    (cdxPlywoodCost - (cdxPlywoodQuantity * cdxPlywoodOurCost)) +
+    (dumpsterCost - (dumpsterUnitsNeeded * dumpsterOurCost)) +
+    (permitsCost - (permitsUnitsNeeded * permitsOurCost))
+  );
+
+  const totalBaseProfit = materialBaseProfit + laborBaseProfit;
 
   return (
     <div className="space-y-4">
@@ -434,9 +482,41 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
                   <tbody className="divide-y divide-gray-200">
                     <tr>
                       <td className="px-4 py-3 text-sm truncate">Base Installation ({measurements.predominant_pitch} pitch)</td>
-                      <td className="px-4 py-3 text-sm whitespace-nowrap">${pricing.labor.base_installation.price.toFixed(2)}/SQ</td>
-                      <td className="px-6 py-3 text-sm whitespace-nowrap">{totalSquares.toFixed(2)} SQ</td>
-                      <td className="px-4 py-3 text-sm text-right font-medium whitespace-nowrap">${laborCost.toFixed(2)}</td>
+                      <td className="px-4 py-3 text-sm whitespace-nowrap">${baseInstallationRetailPrice.toFixed(2)}/EA</td>
+                      <td className="px-6 py-3 text-sm whitespace-nowrap">{baseInstallationUnitsNeeded.toFixed(2)} EA</td>
+                      <td className="px-4 py-3 text-sm text-right font-medium whitespace-nowrap">${baseInstallationCost.toFixed(2)}</td>
+                    </tr>
+                    <tr>
+                      <td className="px-4 py-3 text-sm">1/2"x4'x8' CDX Plywood - 4-Ply</td>
+                      <td className="px-4 py-3 text-sm">${cdxPlywoodRetailPrice.toFixed(2)}/BRD</td>
+                      <td className="px-4 py-3 text-sm">
+                        <input
+                          type="number"
+                          value={cdxPlywoodQuantity}
+                          onChange={(e) => setCdxPlywoodQuantity(Number(e.target.value))}
+                          min="0"
+                          className="w-16 text-sm bg-transparent border-b border-gray-300 focus:outline-none focus:border-blue-500"
+                        /> BRD
+                      </td>
+                      <td className="px-4 py-3 text-sm text-right font-medium">${cdxPlywoodCost.toFixed(2)}</td>
+                    </tr>
+                    <tr>
+                      <td className="px-4 py-3 text-sm">Dumpster 12 yard</td>
+                      <td className="px-4 py-3 text-sm">${dumpsterRetailPrice.toFixed(2)}/EA</td>
+                      <td className="px-4 py-3 text-sm">{dumpsterUnitsNeeded} EA</td>
+                      <td className="px-4 py-3 text-sm text-right font-medium">${dumpsterCost.toFixed(2)}</td>
+                    </tr>
+                    <tr>
+                      <td className="px-4 py-3 text-sm">Perform Required Permits and Inspections</td>
+                      <td className="px-4 py-3 text-sm">${permitsRetailPrice.toFixed(2)}/EA</td>
+                      <td className="px-4 py-3 text-sm">{permitsUnitsNeeded} EA</td>
+                      <td className="px-4 py-3 text-sm text-right font-medium">${permitsCost.toFixed(2)}</td>
+                    </tr>
+                    <tr>
+                      <td className="px-4 py-3 text-sm">Re-Nail the decking and trusses Per FL Building Code</td>
+                      <td className="px-4 py-3 text-sm">${reNailingRetailPrice.toFixed(2)}/EA</td>
+                      <td className="px-4 py-3 text-sm">{reNailingUnitsNeeded.toFixed(2)} EA</td>
+                      <td className="px-4 py-3 text-sm text-right font-medium">${(reNailingUnitsNeeded * reNailingRetailPrice).toFixed(2)}</td>
                     </tr>
                     <tr className="bg-gray-50">
                       <td colSpan={3} className="px-4 py-3 text-sm font-semibold">Total Labor Cost</td>
@@ -459,12 +539,183 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
                         ${totalMaterialCost.toFixed(2)}
                       </span>
                     </div>
+                    <div className="flex justify-between items-center mt-2">
+                      <span className="text-sm text-gray-500">Base Material Profit</span>
+                      <span className="text-sm font-medium text-green-600">
+                        ${materialBaseProfit.toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="mt-3 text-xs space-y-1">
+                      <div className="text-gray-500 font-medium">Material Profit Details:</div>
+                      <div>
+                        <div className="flex justify-between">
+                          <span>GAF Timberline HDZ Shingles</span>
+                          <span className="text-green-600">${((totalSquares * shinglesBasePrice) - (totalSquares * 121.68)).toFixed(2)}</span>
+                        </div>
+                        <div className="text-gray-400 text-[11px] italic pl-2">
+                          Our Retail Price: ${shinglesBasePrice.toFixed(2)}/SQ × {totalSquares.toFixed(2)} SQ
+                        </div>
+                        <div className="text-gray-400 text-[11px] italic pl-2">
+                          Manufacturer Cost: $121.68/SQ × {totalSquares.toFixed(2)} SQ
+                        </div>
+                      </div>
+                      <div>
+                        <div className="flex justify-between">
+                          <span>GAF Weatherwatch Ice & Water Shield</span>
+                          <span className="text-green-600">${((underlaymentRollsNeeded * underlaymentRetailPrice) - (underlaymentRollsNeeded * 94.00)).toFixed(2)}</span>
+                        </div>
+                        <div className="text-gray-400 text-[11px] italic pl-2">
+                          Our Retail Price: ${underlaymentRetailPrice.toFixed(2)}/EA × {underlaymentRollsNeeded} EA
+                        </div>
+                        <div className="text-gray-400 text-[11px] italic pl-2">
+                          Manufacturer Cost: $94.00/EA × {underlaymentRollsNeeded} EA
+                        </div>
+                      </div>
+                      <div>
+                        <div className="flex justify-between">
+                          <span>ACM Galvalume Drip Edge</span>
+                          <span className="text-green-600">${((acmGalvalumeDripEdgeQuantity * acmGalvalumeDripEdgeBasePrice) - (acmGalvalumeDripEdgeQuantity * 5.50)).toFixed(2)}</span>
+                        </div>
+                        <div className="text-gray-400 text-[11px] italic pl-2">
+                          Our Retail Price: ${acmGalvalumeDripEdgeBasePrice.toFixed(2)}/PC × {acmGalvalumeDripEdgeQuantity} PC
+                        </div>
+                        <div className="text-gray-400 text-[11px] italic pl-2">
+                          Manufacturer Cost: $5.50/PC × {acmGalvalumeDripEdgeQuantity} PC
+                        </div>
+                      </div>
+                      <div>
+                        <div className="flex justify-between">
+                          <span>Coil Nails (2 3/8")</span>
+                          <span className="text-green-600">${((coilNailsBoxesNeeded * coilNailsRetailPrice) - (coilNailsBoxesNeeded * coilNailsOurCost)).toFixed(2)}</span>
+                        </div>
+                        <div className="text-gray-400 text-[11px] italic pl-2">
+                          Our Retail Price: ${coilNailsRetailPrice.toFixed(2)}/BX × {coilNailsBoxesNeeded} BX
+                        </div>
+                        <div className="text-gray-400 text-[11px] italic pl-2">
+                          Manufacturer Cost: ${coilNailsOurCost.toFixed(2)}/BX × {coilNailsBoxesNeeded} BX
+                        </div>
+                      </div>
+                      <div>
+                        <div className="flex justify-between">
+                          <span>Coil Nails (1 1/4")</span>
+                          <span className="text-green-600">${((smallCoilNailsBoxesNeeded * smallCoilNailsRetailPrice) - (smallCoilNailsBoxesNeeded * smallCoilNailsOurCost)).toFixed(2)}</span>
+                        </div>
+                        <div className="text-gray-400 text-[11px] italic pl-2">
+                          Our Retail Price: ${smallCoilNailsRetailPrice.toFixed(2)}/BX × {smallCoilNailsBoxesNeeded} BX
+                        </div>
+                        <div className="text-gray-400 text-[11px] italic pl-2">
+                          Manufacturer Cost: ${smallCoilNailsOurCost.toFixed(2)}/BX × {smallCoilNailsBoxesNeeded} BX
+                        </div>
+                      </div>
+                      <div>
+                        <div className="flex justify-between">
+                          <span>Plastic Cap Nails</span>
+                          <span className="text-green-600">${((plasticCapNailsBoxesNeeded * plasticCapNailsRetailPrice) - (plasticCapNailsBoxesNeeded * plasticCapNailsOurCost)).toFixed(2)}</span>
+                        </div>
+                        <div className="text-gray-400 text-[11px] italic pl-2">
+                          Our Retail Price: ${plasticCapNailsRetailPrice.toFixed(2)}/BX × {plasticCapNailsBoxesNeeded} BX
+                        </div>
+                        <div className="text-gray-400 text-[11px] italic pl-2">
+                          Manufacturer Cost: ${plasticCapNailsOurCost.toFixed(2)}/BX × {plasticCapNailsBoxesNeeded} BX
+                        </div>
+                      </div>
+                      <div>
+                        <div className="flex justify-between">
+                          <span>Geocel Sealant</span>
+                          <span className="text-green-600">${((geocelSealantUnitsNeeded * geocelSealantRetailPrice) - (geocelSealantUnitsNeeded * geocelSealantOurCost)).toFixed(2)}</span>
+                        </div>
+                        <div className="text-gray-400 text-[11px] italic pl-2">
+                          Our Retail Price: ${geocelSealantRetailPrice.toFixed(2)}/EA × {geocelSealantUnitsNeeded} EA
+                        </div>
+                        <div className="text-gray-400 text-[11px] italic pl-2">
+                          Manufacturer Cost: ${geocelSealantOurCost.toFixed(2)}/EA × {geocelSealantUnitsNeeded} EA
+                        </div>
+                      </div>
+                      <div>
+                        <div className="flex justify-between">
+                          <span>Karnak Roof Tar</span>
+                          <span className="text-green-600">${((karnakTarUnitsNeeded * karnakTarRetailPrice) - (karnakTarUnitsNeeded * karnakTarOurCost)).toFixed(2)}</span>
+                        </div>
+                        <div className="text-gray-400 text-[11px] italic pl-2">
+                          Our Retail Price: ${karnakTarRetailPrice.toFixed(2)}/EA × {karnakTarUnitsNeeded} EA
+                        </div>
+                        <div className="text-gray-400 text-[11px] italic pl-2">
+                          Manufacturer Cost: ${karnakTarOurCost.toFixed(2)}/EA × {karnakTarUnitsNeeded} EA
+                        </div>
+                      </div>
+                    </div>
                   </div>
                   <div className="bg-gray-50 p-4 rounded-lg">
                     <div className="flex justify-between items-center">
                       <span className="text-sm font-medium text-gray-600">Total Labor Cost</span>
                       <span className="text-lg font-semibold">${laborCost.toFixed(2)}</span>
                     </div>
+                    <div className="flex justify-between items-center mt-2">
+                      <span className="text-sm text-gray-500">Base Labor Profit</span>
+                      <span className="text-sm font-medium text-green-600">
+                        ${laborBaseProfit.toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="mt-3 text-xs space-y-1">
+                      <div className="text-gray-500 font-medium">Labor Profit Details:</div>
+                      <div>
+                        <div className="flex justify-between">
+                          <span>Base Installation</span>
+                          <span className="text-green-600">${(baseInstallationCost - (baseInstallationUnitsNeeded * baseInstallationOurCost)).toFixed(2)}</span>
+                        </div>
+                        <div className="text-gray-400 text-[11px] italic pl-2">
+                          Our Retail Price: ${baseInstallationRetailPrice.toFixed(2)}/EA × {baseInstallationUnitsNeeded.toFixed(2)} EA
+                        </div>
+                        <div className="text-gray-400 text-[11px] italic pl-2">
+                          Manufacturer Cost: ${baseInstallationOurCost.toFixed(2)}/EA × {baseInstallationUnitsNeeded.toFixed(2)} EA
+                        </div>
+                      </div>
+                      <div>
+                        <div className="flex justify-between">
+                          <span>CDX Plywood</span>
+                          <span className="text-green-600">${(cdxPlywoodCost - (cdxPlywoodQuantity * cdxPlywoodOurCost)).toFixed(2)}</span>
+                        </div>
+                        <div className="text-gray-400 text-[11px] italic pl-2">
+                          Our Retail Price: ${cdxPlywoodRetailPrice.toFixed(2)}/BRD × {cdxPlywoodQuantity} BRD
+                        </div>
+                        <div className="text-gray-400 text-[11px] italic pl-2">
+                          Manufacturer Cost: ${cdxPlywoodOurCost.toFixed(2)}/BRD × {cdxPlywoodQuantity} BRD
+                        </div>
+                      </div>
+                      <div>
+                        <div className="flex justify-between">
+                          <span>Dumpster</span>
+                          <span className="text-green-600">${(dumpsterCost - (dumpsterUnitsNeeded * dumpsterOurCost)).toFixed(2)}</span>
+                        </div>
+                        <div className="text-gray-400 text-[11px] italic pl-2">
+                          Our Retail Price: ${dumpsterRetailPrice.toFixed(2)}/EA × {dumpsterUnitsNeeded} EA
+                        </div>
+                        <div className="text-gray-400 text-[11px] italic pl-2">
+                          Manufacturer Cost: ${dumpsterOurCost.toFixed(2)}/EA × {dumpsterUnitsNeeded} EA
+                        </div>
+                      </div>
+                      <div>
+                        <div className="flex justify-between">
+                          <span>Permits and Inspections</span>
+                          <span className="text-green-600">${(permitsCost - (permitsUnitsNeeded * permitsOurCost)).toFixed(2)}</span>
+                        </div>
+                        <div className="text-gray-400 text-[11px] italic pl-2">
+                          Our Retail Price: ${permitsRetailPrice.toFixed(2)}/EA × {permitsUnitsNeeded} EA
+                        </div>
+                        <div className="text-gray-400 text-[11px] italic pl-2">
+                          Manufacturer Cost: ${permitsOurCost.toFixed(2)}/EA × {permitsUnitsNeeded} EA
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium text-gray-600">Total Base Profit</span>
+                    <span className="text-lg font-semibold text-green-600">
+                      ${totalBaseProfit.toFixed(2)}
+                    </span>
                   </div>
                 </div>
 
