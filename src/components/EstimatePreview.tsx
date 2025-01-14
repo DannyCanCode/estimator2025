@@ -14,6 +14,11 @@ interface EstimatePreviewProps {
 type LengthMeasurementKey = keyof NonNullable<RoofMeasurements['length_measurements']>;
 
 export function EstimatePreview({ measurements, pricing, additionalMaterials, underlaymentType, onGeneratePDF }: EstimatePreviewProps) {
+  const [profitMargin, setProfitMargin] = useState(20);
+  const [shinglesMarkup, setShinglesMarkup] = useState(12);
+  const [underlaymentMarkup, setUnderlaymentMarkup] = useState(12);
+  const [acmMarkup, setAcmMarkup] = useState(12);
+
   const formatLengthMeasurement = (key: LengthMeasurementKey) => {
     const measurement = measurements.length_measurements?.[key];
     if (measurement) {
@@ -26,20 +31,49 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
   const totalSquares = measurements.total_squares || (measurements.total_area / 100);
   const ridgeLength = measurements.length_measurements?.ridges?.length || 0;
   const valleyLength = measurements.length_measurements?.valleys?.length || 0;
-  const eaveLength = measurements.length_measurements?.eaves?.length || 0;
-  const rakeLength = measurements.length_measurements?.rakes?.length || 0;
+  const eaveLength = measurements.eaves || 0;
+  const rakeLength = measurements.rakes || 0;
   const flashingLength = measurements.length_measurements?.flashing?.length || 0;
   const stepFlashingLength = measurements.length_measurements?.step_flashing?.length || 0;
 
-  // Calculate costs
-  const shinglesCost = totalSquares * pricing.materials.shingles.price;
-  const underlaymentCost = totalSquares * (
-    underlaymentType === UnderlaymentType.FELTBUSTER ? pricing.materials.underlayment.feltbuster.price :
-    underlaymentType === UnderlaymentType.ICE_AND_WATER ? pricing.materials.underlayment.ice_and_water.price :
-    pricing.materials.underlayment.feltbuster.price + pricing.materials.underlayment.ice_and_water.price
-  );
+  // Calculate quantities and base prices
+  const acmGalvalumeDripEdgeBasePrice = 7.50;
+  const acmGalvalumeDripEdgeQuantity = Math.ceil((rakeLength + eaveLength) / 9);
+  const shinglesBasePrice = pricing.materials.shingles.price;
+  const underlaymentRollsNeeded = Math.ceil(totalSquares / 1.6);  // 1 roll covers 1.6 squares
+  const underlaymentRetailPrice = 117.50;  // Retail price per roll
   const ridgeCapsCost = ridgeLength * pricing.materials.ridge_caps.price;
-  const dripEdgeCost = eaveLength * pricing.materials.drip_edge.price;
+  const coilNailsRetailPrice = 66.69;  // Retail price per box
+  const coilNailsOurCost = 64.44;  // Our cost per box
+  const coilNailsBoxesNeeded = Math.ceil(totalSquares / 24);  // 1 box per 24 squares
+  const smallCoilNailsRetailPrice = 58.78;  // Retail price per box for 1 1/4" nails
+  const smallCoilNailsOurCost = 53.89;  // Our cost per box for 1 1/4" nails
+  const smallCoilNailsBoxesNeeded = Math.ceil(totalSquares / 15);  // 1 box per 15 squares
+  const plasticCapNailsRetailPrice = 41.39;  // Retail price per box
+  const plasticCapNailsOurCost = 39.44;  // Our cost per box
+  const plasticCapNailsBoxesNeeded = Math.ceil(totalSquares / 20);  // 1 box per 20 squares
+  const geocelSealantRetailPrice = 12.11;  // Retail price per unit
+  const geocelSealantOurCost = 9.69;  // Our cost per unit
+  const geocelSealantUnitsNeeded = Math.ceil(totalSquares / 20);  // 1 unit per 20 squares
+  const karnakTarRetailPrice = 58.33;  // Retail price per unit
+  const karnakTarOurCost = 42.06;  // Our cost per unit
+  const karnakTarUnitsNeeded = Math.ceil(totalSquares / 20);  // 1 unit per 20 squares
+
+  // Calculate costs with markups
+  const shinglesCost = totalSquares * shinglesBasePrice * (1 + shinglesMarkup / 100);
+  const underlaymentCost = underlaymentRollsNeeded * underlaymentRetailPrice * (1 + underlaymentMarkup / 100);
+  const acmGalvalumeDripEdgeCost = acmGalvalumeDripEdgeQuantity * acmGalvalumeDripEdgeBasePrice * (1 + acmMarkup / 100);
+  const starterShingleCost = (totalSquares / 3) * 63.25;
+  const sealARidgeCost = (totalSquares / 3) * 66.41;
+  const coilNailsCost = coilNailsBoxesNeeded * coilNailsRetailPrice;  // Using retail price for customer
+  const smallCoilNailsCost = smallCoilNailsBoxesNeeded * smallCoilNailsRetailPrice;  // Using retail price for customer
+  const plasticCapNailsCost = plasticCapNailsBoxesNeeded * plasticCapNailsRetailPrice;  // Using retail price for customer
+  const geocelSealantCost = geocelSealantUnitsNeeded * geocelSealantRetailPrice;  // Using retail price for customer
+  const karnakTarCost = karnakTarUnitsNeeded * karnakTarRetailPrice;  // Using retail price for customer
+
+  // Calculate total material cost
+  const totalMaterialCost = shinglesCost + underlaymentCost + starterShingleCost + sealARidgeCost + acmGalvalumeDripEdgeCost + 
+    coilNailsCost + smallCoilNailsCost + plasticCapNailsCost + geocelSealantCost + karnakTarCost;
 
   // Calculate labor based on pitch
   const pitch = measurements.predominant_pitch ? parseInt(measurements.predominant_pitch.split('/')[0]) : 6;
@@ -47,9 +81,15 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
   const laborCost = totalSquares * pricing.labor.base_installation.price * laborMultiplier;
 
   // Total cost
-  const totalCost = shinglesCost + underlaymentCost + ridgeCapsCost + dripEdgeCost + laborCost;
+  const totalCost = shinglesCost + underlaymentCost + ridgeCapsCost + laborCost;
 
-  const [profitMargin, setProfitMargin] = useState(20);
+  console.log('Rake Length:', rakeLength);
+  console.log('Eave Length:', eaveLength);
+
+  // Log the entire measurements object for debugging
+  console.log('Measurements Object:', measurements);
+
+  const wastePercentage = Math.max(measurements.suggested_waste_percentage || 12, 12);
 
   return (
     <div className="space-y-4">
@@ -201,18 +241,60 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
                     )}
                     {measurements.penetrations_area !== undefined && (
                       <tr>
-                        <td className="px-4 py-3 text-sm">Penetrations Area</td>
+                        <td className="px-4 py-3 text-sm">Total Roof Area Less Penetration</td>
                         <td className="px-4 py-3 text-sm font-medium">{measurements.penetrations_area} sq ft</td>
                         <td className="px-4 py-3 text-sm">✅ Complete</td>
                       </tr>
                     )}
                     {measurements.penetrations_perimeter !== undefined && (
                       <tr>
-                        <td className="px-4 py-3 text-sm">Penetrations Perimeter</td>
+                        <td className="px-4 py-3 text-sm">Total Penetrations Perimeter</td>
                         <td className="px-4 py-3 text-sm font-medium">{measurements.penetrations_perimeter} ft</td>
                         <td className="px-4 py-3 text-sm">✅ Complete</td>
                       </tr>
                     )}
+
+                    {/* Check for hips */}
+                    <tr>
+                      <td className="px-4 py-3 text-sm">Hips</td>
+                      <td className="px-4 py-3 text-sm font-medium">
+                        {measurements.length_measurements?.hips 
+                          ? `${measurements.length_measurements.hips.length} ft (${measurements.length_measurements.hips.count} ${measurements.length_measurements.hips.count > 1 ? 'pieces' : 'piece'})`
+                          : measurements.hips
+                          ? `${measurements.hips} ft`
+                          : 'N/A'
+                        }
+                      </td>
+                      <td className="px-4 py-3 text-sm">
+                        {(measurements.length_measurements?.hips || measurements.hips) ? '✅ Complete' : '❌ Missing'}
+                      </td>
+                    </tr>
+
+                    {/* Add Total Roof Area Less Penetration */}
+                    {measurements.penetrations_area !== undefined && (
+                      <tr>
+                        <td className="px-4 py-3 text-sm">Total Roof Area Less Penetration</td>
+                        <td className="px-4 py-3 text-sm font-medium">{measurements.penetrations_area} sq ft</td>
+                        <td className="px-4 py-3 text-sm">✅ Complete</td>
+                      </tr>
+                    )}
+
+                    {/* Add Total Penetrations Perimeter */}
+                    {measurements.penetrations_perimeter !== undefined && (
+                      <tr>
+                        <td className="px-4 py-3 text-sm">Total Penetrations Perimeter</td>
+                        <td className="px-4 py-3 text-sm font-medium">{measurements.penetrations_perimeter} ft</td>
+                        <td className="px-4 py-3 text-sm">✅ Complete</td>
+                      </tr>
+                    )}
+
+                    <tr>
+                      <td className="px-4 py-3 text-sm">Total Penetrations Area</td>
+                      <td className="px-4 py-3 text-sm font-medium">{measurements.penetrations_area || 'N/A'} sq ft</td>
+                      <td className="px-4 py-3 text-sm">
+                        {measurements.penetrations_area ? '✅ Complete' : '❌ Missing'}
+                      </td>
+                    </tr>
                   </tbody>
                 </table>
               </div>
@@ -235,41 +317,100 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
                     <tr>
                       <td className="px-4 py-3 text-sm">GAF Timberline HDZ Shingles</td>
                       <td className="px-4 py-3 text-sm">{totalSquares.toFixed(2)} SQ</td>
-                      <td className="px-4 py-3 text-sm">${pricing.materials.shingles.price.toFixed(2)}/SQ</td>
-                      <td className="px-4 py-3 text-sm text-right font-medium">${shinglesCost.toFixed(2)}</td>
-                    </tr>
-                    <tr>
-                      <td className="px-4 py-3 text-sm">Underlayment ({underlaymentType})</td>
-                      <td className="px-4 py-3 text-sm">{totalSquares.toFixed(2)} SQ</td>
-                      <td className="px-4 py-3 text-sm">
-                        ${(underlaymentType === UnderlaymentType.FELTBUSTER 
-                          ? pricing.materials.underlayment.feltbuster.price 
-                          : pricing.materials.underlayment.ice_and_water.price).toFixed(2)}/SQ
+                      <td className="px-4 py-3 text-sm">${shinglesBasePrice.toFixed(2)}/SQ</td>
+                      <td className="px-4 py-3 text-sm text-right font-medium">
+                        ${shinglesCost.toFixed(2)}
+                        <input
+                          type="number"
+                          value={shinglesMarkup}
+                          onChange={(e) => setShinglesMarkup(Number(e.target.value))}
+                          className="ml-1 w-12 text-xs text-gray-500 bg-transparent border-b border-gray-300 focus:outline-none focus:border-blue-500"
+                        />
+                        <span className="text-xs text-gray-500">%</span>
                       </td>
-                      <td className="px-4 py-3 text-sm text-right font-medium">${underlaymentCost.toFixed(2)}</td>
                     </tr>
                     <tr>
-                      <td className="px-4 py-3 text-sm">Ridge Caps</td>
-                      <td className="px-4 py-3 text-sm">{ridgeLength.toFixed(2)} ft</td>
-                      <td className="px-4 py-3 text-sm">${pricing.materials.ridge_caps.price.toFixed(2)}/ft</td>
-                      <td className="px-4 py-3 text-sm text-right font-medium">${ridgeCapsCost.toFixed(2)}</td>
+                      <td className="px-4 py-3 text-sm">GAF Weatherwatch Ice & Water Shield (2sq)</td>
+                      <td className="px-4 py-3 text-sm">{underlaymentRollsNeeded} EA</td>
+                      <td className="px-4 py-3 text-sm">${underlaymentRetailPrice.toFixed(2)}/EA</td>
+                      <td className="px-4 py-3 text-sm text-right font-medium">
+                        ${underlaymentCost.toFixed(2)}
+                        <input
+                          type="number"
+                          value={underlaymentMarkup}
+                          onChange={(e) => setUnderlaymentMarkup(Number(e.target.value))}
+                          className="ml-1 w-12 text-xs text-gray-500 bg-transparent border-b border-gray-300 focus:outline-none focus:border-blue-500"
+                        />
+                        <span className="text-xs text-gray-500">%</span>
+                      </td>
                     </tr>
                     <tr>
-                      <td className="px-4 py-3 text-sm">Drip Edge</td>
-                      <td className="px-4 py-3 text-sm">{eaveLength.toFixed(2)} ft</td>
-                      <td className="px-4 py-3 text-sm">${pricing.materials.drip_edge.price.toFixed(2)}/ft</td>
-                      <td className="px-4 py-3 text-sm text-right font-medium">${dripEdgeCost.toFixed(2)}</td>
+                      <td className="px-4 py-3 text-sm">GAF ProStart Starter Shingle Strip (120')</td>
+                      <td className="px-4 py-3 text-sm">{(totalSquares / 3).toFixed(2)} BD</td>
+                      <td className="px-4 py-3 text-sm">$63.25/BD</td>
+                      <td className="px-4 py-3 text-sm text-right font-medium">${((totalSquares / 3) * 63.25).toFixed(2)}</td>
+                    </tr>
+                    <tr>
+                      <td className="px-4 py-3 text-sm">GAF Seal-A-Ridge (25')</td>
+                      <td className="px-4 py-3 text-sm">{(totalSquares / 3).toFixed(2)} BD</td>
+                      <td className="px-4 py-3 text-sm">$66.41/BD</td>
+                      <td className="px-4 py-3 text-sm text-right font-medium">${(totalSquares / 3 * 66.41).toFixed(2)}</td>
+                    </tr>
+                    <tr>
+                      <td className="px-4 py-3 text-sm">ACM Galvalume Drip Edge - 26GA - F2.5 (10')</td>
+                      <td className="px-4 py-3 text-sm">{acmGalvalumeDripEdgeQuantity} PC</td>
+                      <td className="px-4 py-3 text-sm">${acmGalvalumeDripEdgeBasePrice.toFixed(2)}/PC</td>
+                      <td className="px-4 py-3 text-sm text-right font-medium">
+                        ${acmGalvalumeDripEdgeCost.toFixed(2)}
+                        <input
+                          type="number"
+                          value={acmMarkup}
+                          onChange={(e) => setAcmMarkup(Number(e.target.value))}
+                          className="ml-1 w-12 text-xs text-gray-500 bg-transparent border-b border-gray-300 focus:outline-none focus:border-blue-500"
+                        />
+                        <span className="text-xs text-gray-500">%</span>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="px-4 py-3 text-sm">Coil Nails - 2 3/8" (4500 Cnt)</td>
+                      <td className="px-4 py-3 text-sm">{coilNailsBoxesNeeded} BX</td>
+                      <td className="px-4 py-3 text-sm">${coilNailsRetailPrice.toFixed(2)}/BX</td>
+                      <td className="px-4 py-3 text-sm text-right font-medium">${coilNailsCost.toFixed(2)}</td>
+                    </tr>
+                    <tr>
+                      <td className="px-4 py-3 text-sm">Roofing Coil Nails - 1 1/4" (7200 Cnt)</td>
+                      <td className="px-4 py-3 text-sm">{smallCoilNailsBoxesNeeded} BX</td>
+                      <td className="px-4 py-3 text-sm">${smallCoilNailsRetailPrice.toFixed(2)}/BX</td>
+                      <td className="px-4 py-3 text-sm text-right font-medium">${smallCoilNailsCost.toFixed(2)}</td>
+                    </tr>
+                    <tr>
+                      <td className="px-4 py-3 text-sm">Plastic Cap Nails - 1" (3000 Cnt)</td>
+                      <td className="px-4 py-3 text-sm">{plasticCapNailsBoxesNeeded} BX</td>
+                      <td className="px-4 py-3 text-sm">${plasticCapNailsRetailPrice.toFixed(2)}/BX</td>
+                      <td className="px-4 py-3 text-sm text-right font-medium">${plasticCapNailsCost.toFixed(2)}</td>
+                    </tr>
+                    <tr>
+                      <td className="px-4 py-3 text-sm">Geocel 2300 Construction TriPolymer Sealant (10.3 oz)</td>
+                      <td className="px-4 py-3 text-sm">{geocelSealantUnitsNeeded} EA</td>
+                      <td className="px-4 py-3 text-sm">${geocelSealantRetailPrice.toFixed(2)}/EA</td>
+                      <td className="px-4 py-3 text-sm text-right font-medium">${geocelSealantCost.toFixed(2)}</td>
+                    </tr>
+                    <tr>
+                      <td className="px-4 py-3 text-sm">Karnak 19 Ultra Roof Tar - 5Gal</td>
+                      <td className="px-4 py-3 text-sm">{karnakTarUnitsNeeded} EA</td>
+                      <td className="px-4 py-3 text-sm">${karnakTarRetailPrice.toFixed(2)}/EA</td>
+                      <td className="px-4 py-3 text-sm text-right font-medium">${karnakTarCost.toFixed(2)}</td>
                     </tr>
                     <tr className="bg-gray-50">
                       <td colSpan={3} className="px-4 py-3 text-sm font-semibold">Total Material Cost</td>
                       <td className="px-4 py-3 text-sm text-right font-semibold">
-                        ${(shinglesCost + underlaymentCost + ridgeCapsCost + dripEdgeCost).toFixed(2)}
+                        ${totalMaterialCost.toFixed(2)}
                       </td>
                     </tr>
                   </tbody>
                 </table>
+              </div>
             </div>
-          </div>
 
             {/* Labor Costs Table */}
           <div>
@@ -315,7 +456,7 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
                     <div className="flex justify-between items-center">
                       <span className="text-sm font-medium text-gray-600">Total Material Cost</span>
                       <span className="text-lg font-semibold">
-                        ${(shinglesCost + underlaymentCost + ridgeCapsCost + dripEdgeCost).toFixed(2)}
+                        ${totalMaterialCost.toFixed(2)}
                       </span>
                     </div>
                   </div>
