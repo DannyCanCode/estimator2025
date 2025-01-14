@@ -54,14 +54,14 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
   return (
     <div className="space-y-4">
       <Card className="w-full">
-        <CardHeader>
-          <CardTitle>Estimate Preview</CardTitle>
+      <CardHeader>
+        <CardTitle>Estimate Preview</CardTitle>
           <p className="text-sm text-gray-500">Review extracted measurements, material costs, and labor charges for your roofing project.</p>
-        </CardHeader>
-        <CardContent>
+      </CardHeader>
+      <CardContent>
           <div className="space-y-8">
             {/* Extracted Measurements Table */}
-            <div>
+          <div>
               <h3 className="text-base font-semibold mb-4">Extracted Measurements</h3>
               <div className="bg-white border rounded-lg overflow-hidden">
                 <table className="w-full">
@@ -83,9 +83,7 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
                     </tr>
                     <tr>
                       <td className="px-4 py-3 text-sm">Total Squares</td>
-                      <td className="px-4 py-3 text-sm font-medium">
-                        {measurements.total_squares || (measurements.total_area / 100).toFixed(2)}
-                      </td>
+                      <td className="px-6 py-3 text-sm whitespace-nowrap">{totalSquares.toFixed(2)} SQ</td>
                       <td className="px-4 py-3 text-sm">✅ Complete</td>
                     </tr>
                     <tr>
@@ -270,19 +268,19 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
                     </tr>
                   </tbody>
                 </table>
-              </div>
             </div>
+          </div>
 
             {/* Labor Costs Table */}
-            <div>
+          <div>
               <h3 className="text-base font-semibold mb-4">Labor Costs</h3>
               <div className="bg-white border rounded-lg overflow-hidden">
                 <table className="w-full table-fixed">
                   <colgroup>
-                    <col className="w-[40%]" />
-                    <col className="w-[20%]" />
-                    <col className="w-[20%]" />
-                    <col className="w-[20%]" />
+                    <col className="w-[24%]" />
+                    <col className="w-[24%]" />
+                    <col className="w-[24%]" />
+                    <col className="w-[28%]" />
                   </colgroup>
                   <thead className="bg-gray-50">
                     <tr>
@@ -296,12 +294,12 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
                     <tr>
                       <td className="px-4 py-3 text-sm truncate">Base Installation ({measurements.predominant_pitch} pitch)</td>
                       <td className="px-4 py-3 text-sm whitespace-nowrap">${pricing.labor.base_installation.price.toFixed(2)}/SQ</td>
-                      <td className="px-4 py-3 text-sm whitespace-nowrap">{totalSquares.toFixed(2)} SQ</td>
-                      <td className="px-4 py-3 text-sm text-right font-medium whitespace-nowrap pr-6">${laborCost.toFixed(2)}</td>
+                      <td className="px-6 py-3 text-sm whitespace-nowrap">{totalSquares.toFixed(2)} SQ</td>
+                      <td className="px-4 py-3 text-sm text-right font-medium whitespace-nowrap">${laborCost.toFixed(2)}</td>
                     </tr>
                     <tr className="bg-gray-50">
                       <td colSpan={3} className="px-4 py-3 text-sm font-semibold">Total Labor Cost</td>
-                      <td className="px-4 py-3 text-sm text-right font-semibold whitespace-nowrap pr-6">${laborCost.toFixed(2)}</td>
+                      <td className="px-4 py-3 text-sm text-right font-semibold whitespace-nowrap">${laborCost.toFixed(2)}</td>
                     </tr>
                   </tbody>
                 </table>
@@ -348,20 +346,20 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
                       <span>25%</span>
                       <span>50%</span>
                     </div>
-                  </div>
-                </div>
+            </div>
+          </div>
 
                 <div className="bg-blue-50 p-6 rounded-lg">
                   <div className="flex justify-between items-center">
-                    <div>
+          <div>
                       <span className="text-lg font-semibold text-blue-900">Grand Total</span>
                       <span className="text-sm text-blue-700 ml-2">(with {profitMargin}% margin)</span>
                     </div>
                     <span className="text-3xl font-bold text-blue-900">
                       ${(totalCost * (1 + profitMargin / 100)).toFixed(2)}
                     </span>
-                  </div>
-                </div>
+            </div>
+          </div>
 
                 <button
                   onClick={onGeneratePDF}
@@ -423,9 +421,9 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
                 </div>
               </div>
             )}
-          </div>
-        </CardContent>
-      </Card>
+        </div>
+      </CardContent>
+    </Card>
     </div>
   );
 } 
