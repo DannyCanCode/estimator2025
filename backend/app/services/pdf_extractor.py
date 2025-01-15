@@ -1,10 +1,10 @@
 import re
 from typing import Dict, Any, List, Optional
-import pdfplumber
-from loguru import logger
-from io import BytesIO
 import camelot
 import os
+import fitz  # pymupdf
+from loguru import logger
+from io import BytesIO
 
 class PDFExtractor:
     def __init__(self):
@@ -204,10 +204,11 @@ class PDFExtractor:
             with open(temp_pdf_path, "wb") as f:
                 f.write(pdf_content)
 
-            # Extract text using pdfplumber for non-table content
-            pdf_file = BytesIO(pdf_content)
-            with pdfplumber.open(pdf_file) as pdf:
-                text = "\n".join(page.extract_text() or "" for page in pdf.pages)
+            # Extract text using pymupdf for non-table content
+            pdf_file = fitz.open(stream=pdf_content, filetype="pdf")
+            text = ""
+            for page in pdf_file:
+                text += page.get_text()
 
             if not text.strip():
                 raise ValueError("No text could be extracted from PDF")
@@ -269,6 +270,21 @@ class PDFExtractor:
                 os.remove(temp_pdf_path)
             except Exception as e:
                 logger.error(f"Error removing temporary PDF file: {e}")
+
+            # Extract penetrations area
+            penetrations_area_match = self.patterns['penetrations_area'].search(text)
+            if penetrations_area_match:
+                measurements['penetrations_area'] = int(penetrations_area_match.group(1))
+                logger.debug(f"Extracted penetrations area: {measurements['penetrations_area']}")
+            else:
+                logger.warning("Penetrations area not found in PDF")
+
+            # Extract penetrations perimeter
+            penetrations_perimeter_match = self.patterns['penetrations_perimeter'].search(text)
+            if penetrations_perimeter_match:
+                measurements['penetrations_perimeter'] = int(penetrations_perimeter_match.group(1))
+            else:
+                logger.warning("Penetrations perimeter not found in PDF")
 
             # Compile final measurements
             measurements = {

@@ -122,6 +122,7 @@ export interface RoofMeasurements {
     extracted_text?: string;
     matches_found?: Record<string, string[]>;
   };
+  suggested_waste_percentage?: number;
 }
 
 export interface MaterialCost {
