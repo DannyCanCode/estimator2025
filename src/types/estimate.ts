@@ -78,22 +78,7 @@ export interface DebugInfo {
 
 export interface RoofMeasurements {
   total_area: number;
-  total_squares?: number;
-  predominant_pitch?: string;
-  penetrations?: number;
-  penetrations_area?: number;
-  penetrations_perimeter?: number;
-  length_measurements?: {
-    ridges?: LengthMeasurement;
-    valleys?: LengthMeasurement;
-    eaves?: LengthMeasurement;
-    rakes?: LengthMeasurement;
-    hips?: LengthMeasurement;
-    flashing?: LengthMeasurement;
-    step_flashing?: LengthMeasurement;
-    drip_edge?: LengthMeasurement;
-  };
-  // Legacy fields for backward compatibility
+  predominant_pitch: string;
   ridges?: number;
   valleys?: number;
   eaves?: number;
@@ -101,28 +86,27 @@ export interface RoofMeasurements {
   hips?: number;
   flashing?: number;
   step_flashing?: number;
-  drip_edge?: number;
+  penetrations?: number;
+  penetrations_perimeter?: number;
+  waste_percentage?: number;
+  debug_info?: {
+    extraction_method: string;
+    error?: string;
+    tables_found?: number;
+    extracted_text?: string;
+    matches_found?: Record<string, boolean>;
+  };
   areas_per_pitch?: Array<{
     pitch: string;
     area: number;
     percentage: number;
   }>;
-  facets?: Array<{
-    number: number;
-    area: number;
-  }>;
-  debug_info?: {
-    extraction_method: string;
-    error?: string;
-    tables_found?: number;
-    parsed_data?: Array<{
-      table_index: number;
-      rows: string[];
-    }>;
-    extracted_text?: string;
-    matches_found?: Record<string, string[]>;
+  length_measurements?: {
+    [key: string]: {
+      length: number;
+      count: number;
+    };
   };
-  suggested_waste_percentage?: number;
 }
 
 export interface MaterialCost {

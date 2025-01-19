@@ -119,6 +119,9 @@ const DEFAULT_PRICING: PricingConfig = {
 };
 
 export function EstimateGenerator({ measurements }: EstimateGeneratorProps) {
+  console.log('EstimateGenerator - Received measurements:', measurements);
+  console.log('EstimateGenerator - Areas per pitch:', measurements.areas_per_pitch);
+
   const [selectedShingle] = useState('Timberline HDZ');
   const [underlaymentType, setUnderlaymentType] = useState<UnderlaymentType>(UnderlaymentType.FELTBUSTER);
   const [additionalMaterials, setAdditionalMaterials] = useState<AdditionalMaterials>({

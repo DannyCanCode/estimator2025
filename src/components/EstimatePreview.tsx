@@ -131,6 +131,7 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
 
   // Log the entire measurements object for debugging
   console.log('Measurements Object:', measurements);
+  console.log('Areas per Pitch:', measurements?.areas_per_pitch);
 
   const wastePercentage = Math.max(measurements.suggested_waste_percentage || 12, 12);
 
@@ -324,17 +325,27 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
                       <tr>
                         <td className="px-4 py-3 text-sm">Hips</td>
                         <td className="px-4 py-3 text-sm font-medium">
-                          {measurements.length_measurements?.hips 
-                            ? `${measurements.length_measurements.hips.length} ft (${measurements.length_measurements.hips.count} ${measurements.length_measurements.hips.count > 1 ? 'pieces' : 'piece'})`
-                            : measurements.hips
-                            ? `${measurements.hips} ft`
-                            : 'N/A'
-                          }
+                          {formatLengthMeasurement('hips')}
                         </td>
                         <td className="px-4 py-3 text-sm">
-                          {(measurements.length_measurements?.hips || measurements.hips) ? '✅ Complete' : '❌ Missing'}
+                          {measurements.hips ? '✅ Complete' : '❌ Missing'}
                         </td>
                       </tr>
+
+                      {/* Areas per Pitch */}
+                      {measurements?.areas_per_pitch && measurements.areas_per_pitch.length > 0 && (
+                        <tr>
+                          <td className="px-4 py-3 text-sm">Areas per Pitch</td>
+                          <td className="px-4 py-3 text-sm font-medium">
+                            {measurements.areas_per_pitch.map((pitch, index) => (
+                              <div key={index}>
+                                Pitch: {pitch.pitch}, Area: {pitch.area.toLocaleString()} sq ft, Percentage: {pitch.percentage}%
+                              </div>
+                            ))}
+                          </td>
+                          <td className="px-4 py-3 text-sm">✅ Complete</td>
+                        </tr>
+                      )}
 
                       {/* Add Total Penetrations Perimeter */}
                       {measurements.penetrations_perimeter !== undefined && (
@@ -857,33 +868,6 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
                       <span className="text-sm text-gray-600">{measurements.debug_info.tables_found}</span>
                     </div>
                   )}
-                </div>
-              </div>
-            )}
-
-            {/* Areas by Pitch */}
-            {measurements.areas_per_pitch && measurements.areas_per_pitch.length > 0 && (
-              <div className="border-t pt-8">
-                <h3 className="text-base font-semibold mb-4">Areas by Pitch</h3>
-                <div className="bg-white border rounded-lg overflow-hidden">
-                  <table className="w-full">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Pitch</th>
-                        <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Area</th>
-                        <th className="px-4 py-3 text-right text-sm font-semibold text-gray-600">Percentage</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200">
-                      {measurements.areas_per_pitch.map((detail, index) => (
-                        <tr key={index}>
-                          <td className="px-4 py-3 text-sm font-medium">{detail.pitch} pitch</td>
-                          <td className="px-4 py-3 text-sm">{detail.area} sq ft</td>
-                          <td className="px-4 py-3 text-sm text-right">{detail.percentage}%</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
                 </div>
               </div>
             )}
