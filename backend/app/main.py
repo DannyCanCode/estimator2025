@@ -1,6 +1,19 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.routers import pdf, estimate
+import logging
+from loguru import logger
+
+# Configure logging
+logging.basicConfig(level=logging.DEBUG)
+logger.add(
+    "logs/debug.log",
+    format="{time} {level} {message}",
+    level="DEBUG",
+    rotation="1 day",
+    retention="7 days",
+    enqueue=True,
+)
 
 app = FastAPI()
 
