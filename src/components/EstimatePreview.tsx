@@ -102,10 +102,10 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
   const underlaymentRollsNeeded = Math.ceil(totalSquares / 1.6);  // 1 roll covers 1.6 squares
   const underlaymentManufacturerPrice = 94.00;  // Manufacturer cost per roll
   const ridgeCapsCost = ridgeLength * pricing.materials.ridge_caps.price;
-  const coilNailsManufacturerPrice = 64.44;  // Manufacturer cost per box
-  const smallCoilNailsManufacturerPrice = 53.89;  // Manufacturer cost per box for 1 1/4" nails
-  const plasticCapNailsManufacturerPrice = 39.44;  // Manufacturer cost per box
-  const geocelSealantManufacturerPrice = 9.69;  // Manufacturer cost per unit
+  const coilNailsManufacturerPrice = 64.44;  // Updated from 66.69
+  const smallCoilNailsManufacturerPrice = 53.89;  // Updated from 58.78
+  const plasticCapNailsManufacturerPrice = 39.44;  // Updated from 41.39
+  const geocelSealantManufacturerPrice = 9.69;  // Updated from 12.11
   const karnakTarManufacturerPrice = 42.06;  // Manufacturer cost per unit
   const cdxPlywoodManufacturerPrice = 100.00;  // Manufacturer cost per board
   const dumpsterManufacturerPrice = 550.00;  // Manufacturer cost per dumpster
@@ -199,6 +199,12 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
   const laborMultiplier = pitch <= 7 ? 1 : pitch <= 9 ? 1.2 : pitch <= 12 ? 1.5 : 2;
   const laborCost = baseInstallationCost + cdxPlywoodCost + dumpsterCost + permitsCost;
 
+  // Calculate the standard price per square based on total cost divided by total squares
+  const totalCostWithLabor = totalMaterialCost + laborCost;
+  const standardPricePerSquare = totalCostWithLabor / totalSquares;
+  const economyPricePerSquare = standardPricePerSquare * 0.9; // -10% markup
+  const premiumPricePerSquare = standardPricePerSquare * 1.2; // +20% markup
+
   // Total cost
   const totalCost = shinglesCost + underlaymentCost + ridgeCapsCost + laborCost;
 
@@ -248,11 +254,6 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
   const adjustedTotalProfit = adjustedMaterialProfit + adjustedLaborProfit;
 
   const selectedShingle = pricing.materials.shingles.name;
-
-  // Calculate the standard price per square based on total cost divided by total squares
-  const standardPricePerSquare = (totalMaterialCost + laborCost) / totalSquares;
-  const economyPricePerSquare = standardPricePerSquare * 0.9; // -10% markup
-  const premiumPricePerSquare = standardPricePerSquare * 1.2; // +20% markup
 
   return (
     <div className="space-y-4">
