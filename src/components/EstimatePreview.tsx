@@ -49,6 +49,15 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
   const [zipSealSelected, setZipSealSelected] = useState(false);
   const [zipSealQuantity, setZipSealQuantity] = useState(0);
   
+  // Add new state for ISO Board
+  const [isoBoardSelected, setIsoBoardSelected] = useState(false);
+  const [isoBoardQuantity, setIsoBoardQuantity] = useState(0);
+  
+  // Add price constants for ISO Board
+  const isoBoardRetailPrice = 54.50;
+  const isoBoardOurCost = 54.50;
+  const isoBoardCost = isoBoardSelected ? isoBoardQuantity * isoBoardRetailPrice : 0;
+  
   // Add state for collapsible sections
   const [isMeasurementsOpen, setIsMeasurementsOpen] = useState(true);
   const [isMaterialsOpen, setIsMaterialsOpen] = useState(true);
@@ -195,7 +204,8 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
   const totalMaterialCost = shinglesCost + underlaymentCost + starterShingleCost + sealARidgeCost + acmGalvalumeDripEdgeCost + 
     coilNailsCost + smallCoilNailsCost + plasticCapNailsCost + geocelSealantCost + karnakTarCost + ridgeVentCost +
     offRidgeVentCost + gooseneck4Cost + gooseneck10Cost + leadFlashing15Cost + leadFlashing2Cost + leadFlashing3Cost +
-    bulletBoot15Cost + bulletBoot2Cost + bulletBoot3Cost + bulletBoot4Cost + zipSealCost + libertyBaseSheetCost + libertyCapSheetCost;
+    bulletBoot15Cost + bulletBoot2Cost + bulletBoot3Cost + bulletBoot4Cost + zipSealCost + libertyBaseSheetCost + libertyCapSheetCost +
+    isoBoardCost;
 
   // Calculate labor based on pitch
   const laborMultiplier = pitch <= 7 ? 1 : pitch <= 9 ? 1.2 : pitch <= 12 ? 1.5 : 2;
@@ -1057,6 +1067,42 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
                           ${totalMaterialCost.toFixed(2)}
                         </td>
                       </tr>
+
+                      {/* Add ISO Board install option in the Add-ons or Upgrades section */}
+                      <tr>
+                        <td className="px-4 py-3 text-sm">
+                          <div className="flex items-center">
+                            <input
+                              type="checkbox"
+                              checked={isoBoardSelected}
+                              onChange={(e) => {
+                                setIsoBoardSelected(e.target.checked);
+                                if (e.target.checked && !isoBoardQuantity) {
+                                  setIsoBoardQuantity(1);
+                                }
+                              }}
+                              className="mr-2 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                              aria-label="Select ISO Board install"
+                              title="Include ISO Board install in estimate"
+                            />
+                            <span>ISO Board Install</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-sm">
+                          {isoBoardSelected ? (
+                            <input
+                              type="number"
+                              value={isoBoardQuantity}
+                              onChange={(e) => setIsoBoardQuantity(Number(e.target.value))}
+                              className="ml-2 w-16 text-sm border rounded px-1"
+                              aria-label="ISO Board quantity"
+                              title="Enter quantity of ISO Boards needed"
+                            />
+                          ) : '-'} EA
+                        </td>
+                        <td className="px-4 py-3 text-sm">${isoBoardRetailPrice.toFixed(2)}/EA</td>
+                        <td className="px-4 py-3 text-sm text-right font-medium">${isoBoardCost.toFixed(2)}</td>
+                      </tr>
                     </tbody>
                   </table>
                 </div>
@@ -1466,6 +1512,22 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
                                   {profitMargin > 0 && (
                                     <span className="text-green-600 ml-2">
                                       (+${(libertyCapSheetCost * profitMargin / 100).toFixed(2)})
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                            {isoBoardSelected && (
+                              <div>
+                                <div className="flex justify-between font-medium">
+                                  <span>ISO Board Install</span>
+                                  <span>${(isoBoardCost * (1 + profitMargin / 100)).toFixed(2)}</span>
+                                </div>
+                                <div className="text-gray-500 text-[11px] pl-2">
+                                  Base Cost: ${isoBoardCost.toFixed(2)} ($54.50/EA × {isoBoardQuantity} EA)
+                                  {profitMargin > 0 && (
+                                    <span className="text-green-600 ml-2">
+                                      (+${(isoBoardCost * profitMargin / 100).toFixed(2)})
                                     </span>
                                   )}
                                 </div>
