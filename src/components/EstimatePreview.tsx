@@ -1061,14 +1061,7 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
                         <td className="px-4 py-3 text-sm text-right font-medium">${libertyCapSheetCost.toFixed(2)}</td>
                       </tr>
 
-                      <tr className="bg-gray-50">
-                        <td colSpan={3} className="px-4 py-3 text-sm font-semibold">Total Material Cost</td>
-                        <td className="px-4 py-3 text-sm text-right font-semibold">
-                          ${totalMaterialCost.toFixed(2)}
-                        </td>
-                      </tr>
-
-                      {/* Add ISO Board install option in the Add-ons or Upgrades section */}
+                      {/* ISO Board install option */}
                       <tr>
                         <td className="px-4 py-3 text-sm">
                           <div className="flex items-center">
@@ -1102,6 +1095,13 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
                         </td>
                         <td className="px-4 py-3 text-sm">${isoBoardRetailPrice.toFixed(2)}/EA</td>
                         <td className="px-4 py-3 text-sm text-right font-medium">${isoBoardCost.toFixed(2)}</td>
+                      </tr>
+
+                      <tr className="bg-gray-50">
+                        <td colSpan={3} className="px-4 py-3 text-sm font-semibold">Total Material Cost</td>
+                        <td className="px-4 py-3 text-sm text-right font-semibold">
+                          ${totalMaterialCost.toFixed(2)}
+                        </td>
                       </tr>
                     </tbody>
                   </table>
