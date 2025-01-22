@@ -16,6 +16,7 @@ interface EstimateGeneratorProps {
 const DEFAULT_PRICING: PricingConfig = {
   materials: {
     shingles: {
+      name: 'GAF Timberline HDZ SG Shingles',
       price: 152.10,
       cost: 121.68,
       unit: 'per square'
@@ -122,7 +123,8 @@ export function EstimateGenerator({ measurements }: EstimateGeneratorProps) {
   console.log('EstimateGenerator - Received measurements:', measurements);
   console.log('EstimateGenerator - Areas per pitch:', measurements.areas_per_pitch);
 
-  const [selectedShingle] = useState('Timberline HDZ');
+  const [selectedShingle, setSelectedShingle] = useState('GAF Timberline HDZ SG');
+  const [selectedManufacturer, setSelectedManufacturer] = useState('GAF');
   const [underlaymentType, setUnderlaymentType] = useState<UnderlaymentType>(UnderlaymentType.FELTBUSTER);
   const [additionalMaterials, setAdditionalMaterials] = useState<AdditionalMaterials>({
     plywood_replacement: false,
@@ -163,8 +165,44 @@ export function EstimateGenerator({ measurements }: EstimateGeneratorProps) {
     setSelectedRoofType(value);
   };
 
+  const handleShingleTypeChange = (value: string) => {
+    setSelectedShingle(value);
+    if (value === 'GAF Timberline HDZ SG') {
+      console.log('Using GAF Timberline HDZ pricing:', DEFAULT_PRICING.materials.shingles);
+    }
+  };
+
   const handleGeneratePDF = async () => {
     try {
+      // Format the pricing data according to the backend model
+      const formattedPricing = {
+        materials: {
+          shingles: {
+            price: DEFAULT_PRICING.materials.shingles.price,
+          },
+          ridge_caps: {
+            price: DEFAULT_PRICING.materials.ridge_caps.price,
+          },
+          starter: {
+            price: DEFAULT_PRICING.materials.starter.price,
+          },
+          drip_edge: {
+            price: DEFAULT_PRICING.materials.drip_edge.price,
+          },
+          ice_water: {
+            price: DEFAULT_PRICING.materials.ice_water.price,
+          },
+        },
+      };
+
+      // Format additional materials
+      const formattedAdditionalMaterials = {
+        vents: additionalMaterials.vents.map(vent => ({
+          type: vent.type,
+          quantity: vent.quantity,
+        })),
+      };
+
       const response = await fetch('/api/generate-estimate', {
         method: 'POST',
         headers: {
@@ -172,10 +210,10 @@ export function EstimateGenerator({ measurements }: EstimateGeneratorProps) {
         },
         body: JSON.stringify({
           measurements,
-          pricing: DEFAULT_PRICING,
+          pricing: formattedPricing,
           selectedShingle,
-          additionalMaterials,
-          underlaymentType
+          additionalMaterials: formattedAdditionalMaterials,
+          underlaymentType,
         }),
       });
 
@@ -187,13 +225,14 @@ export function EstimateGenerator({ measurements }: EstimateGeneratorProps) {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'estimate.pdf';
+      a.download = 'roofing-estimate.pdf';
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
     } catch (error) {
       console.error('Error generating PDF:', error);
+      // You might want to show an error message to the user here
     }
   };
 
@@ -247,7 +286,7 @@ export function EstimateGenerator({ measurements }: EstimateGeneratorProps) {
                   {/* Manufacturer, Type, Color, Pitch */}
                   <div className="space-y-3">
                     <Label className="text-base font-semibold">Manufacturer</Label>
-                    <Select onValueChange={(value) => console.log(value)}>
+                    <Select value={selectedManufacturer} onValueChange={setSelectedManufacturer}>
                       <SelectTrigger className="w-full">
                         <SelectValue placeholder="Select Manufacturer" />
                       </SelectTrigger>
@@ -256,7 +295,7 @@ export function EstimateGenerator({ measurements }: EstimateGeneratorProps) {
                       </SelectContent>
                     </Select>
                     <Label className="text-base font-semibold">Type</Label>
-                    <Select onValueChange={(value) => console.log(value)}>
+                    <Select value={selectedShingle} onValueChange={handleShingleTypeChange}>
                       <SelectTrigger className="w-full">
                         <SelectValue placeholder="Select Type" />
                       </SelectTrigger>
@@ -333,17 +372,17 @@ export function EstimateGenerator({ measurements }: EstimateGeneratorProps) {
                   <div className="space-y-3">
                     <Label className="text-base font-semibold">Goosenecks</Label>
                     <div className="flex items-center space-x-3">
-                      <input type="text" className="w-16 border rounded-lg px-3 py-2" placeholder="4”" />
-                      <input type="text" className="w-16 border rounded-lg px-3 py-2" placeholder="6”" />
-                      <input type="text" className="w-16 border rounded-lg px-3 py-2" placeholder="10”" />
-                      <input type="text" className="w-16 border rounded-lg px-3 py-2" placeholder="12”" />
+                      <input type="text" className="w-16 border rounded-lg px-3 py-2" placeholder="4" />
+                      <input type="text" className="w-16 border rounded-lg px-3 py-2" placeholder="6" />
+                      <input type="text" className="w-16 border rounded-lg px-3 py-2" placeholder="10" />
+                      <input type="text" className="w-16 border rounded-lg px-3 py-2" placeholder="12" />
                     </div>
                     <Label className="text-base font-semibold">Boots</Label>
                     <div className="flex items-center space-x-3">
-                      <input type="text" className="w-16 border rounded-lg px-3 py-2" placeholder="1.5”" />
-                      <input type="text" className="w-16 border rounded-lg px-3 py-2" placeholder="2”" />
-                      <input type="text" className="w-16 border rounded-lg px-3 py-2" placeholder="3”" />
-                      <input type="text" className="w-16 border rounded-lg px-3 py-2" placeholder="4”" />
+                      <input type="text" className="w-16 border rounded-lg px-3 py-2" placeholder="1.5" />
+                      <input type="text" className="w-16 border rounded-lg px-3 py-2" placeholder="2" />
+                      <input type="text" className="w-16 border rounded-lg px-3 py-2" placeholder="3" />
+                      <input type="text" className="w-16 border rounded-lg px-3 py-2" placeholder="4" />
                     </div>
                     <div className="flex items-center space-x-3">
                       <Checkbox id="lead-yes" />
@@ -388,13 +427,13 @@ export function EstimateGenerator({ measurements }: EstimateGeneratorProps) {
                     <Label className="text-base font-semibold">Off Ridge Vents</Label>
                     <div className="flex flex-wrap items-center space-x-5">
                       <Checkbox id="off-ridge-4" />
-                      <label htmlFor="off-ridge-4" className="text-sm">4’</label>
+                      <label htmlFor="off-ridge-4" className="text-sm">4</label>
                       <input type="text" className="w-16 border rounded-lg px-3 py-2" placeholder="Quantity" />
                       <Checkbox id="off-ridge-6" />
-                      <label htmlFor="off-ridge-6" className="text-sm">6’</label>
+                      <label htmlFor="off-ridge-6" className="text-sm">6</label>
                       <input type="text" className="w-16 border rounded-lg px-3 py-2" placeholder="Quantity" />
                       <Checkbox id="off-ridge-8" />
-                      <label htmlFor="off-ridge-8" className="text-sm">8’</label>
+                      <label htmlFor="off-ridge-8" className="text-sm">8</label>
                       <input type="text" className="w-16 border rounded-lg px-3 py-2" placeholder="Quantity" />
                     </div>
                   </div>
@@ -452,8 +491,8 @@ export function EstimateGenerator({ measurements }: EstimateGeneratorProps) {
                     </div>
                     <input type="text" className="w-full border rounded-lg px-3 py-2" placeholder="Type" />
                     <div className="flex items-center space-x-3">
-                      <input type="text" className="w-16 border rounded-lg px-3 py-2" placeholder="2’x2’" />
-                      <input type="text" className="w-16 border rounded-lg px-3 py-2" placeholder="2’x4’" />
+                      <input type="text" className="w-16 border rounded-lg px-3 py-2" placeholder="2x2" />
+                      <input type="text" className="w-16 border rounded-lg px-3 py-2" placeholder="2x4" />
                       <input type="text" className="w-16 border rounded-lg px-3 py-2" placeholder="Dome" />
                     </div>
                   </div>

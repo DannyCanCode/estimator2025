@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { processPdfReport } from "@/services/api";
+import { processPdfFile } from "@/services/pdfProcessingService";
 import { useToast } from "@/hooks/use-toast";
 import { ProcessedPdfData, RoofMeasurements } from "@/types/estimate";
 
@@ -14,26 +14,17 @@ export const usePdfProcessing = ({ onSuccess }: PdfProcessingCallbacks) => {
     mutationFn: async (file: File): Promise<ProcessedPdfData> => {
       try {
         console.log('Processing PDF file:', file.name);
-        const data = await processPdfReport(file);
+        const data = await processPdfFile(file, 0.2, 'standard'); // Default values for now
         console.log('Received data from API:', data);
 
-        if (!data.measurements?.total_area) {
+        if (!data.measurements.total_area) {
           console.error('Invalid or missing total area in response:', data);
-          throw new Error(data.error || 'Could not extract roof area from PDF');
+          throw new Error('Could not extract roof area from PDF');
         }
 
-        // Get the pitch from either pitchBreakdown or the direct pitch field
-        const defaultPitch = "4/12";
-        const pitch = data.measurements.predominant_pitch || defaultPitch;
-
+        // Keep the data in its original format
         const processedData: ProcessedPdfData = {
-          measurements: {
-            total_area: data.measurements.total_area,
-            predominant_pitch: pitch,
-            suggested_waste_percentage: data.measurements.suggested_waste_percentage || 15,
-            // Add all the raw data fields
-            ...data.measurements
-          }
+          measurements: data.measurements
         };
 
         console.log('Processed data:', processedData);
@@ -45,15 +36,8 @@ export const usePdfProcessing = ({ onSuccess }: PdfProcessingCallbacks) => {
     },
     onSuccess: (data: ProcessedPdfData) => {
       console.log('Mutation succeeded with data:', data);
-      const formattedMeasurements: RoofMeasurements = {
-        totalArea: data.measurements.total_area,
-        pitchBreakdown: [{
-          pitch: data.measurements.predominant_pitch || "4/12",
-          area: data.measurements.total_area
-        }],
-        suggestedWaste: data.measurements.suggested_waste_percentage
-      };
-      onSuccess(formattedMeasurements, data.measurements);
+      // Pass the measurements directly without transformation
+      onSuccess(data.measurements, data.measurements);
       toast({
         title: "PDF Processed Successfully",
         description: "Your roof measurements have been extracted.",

@@ -76,8 +76,14 @@ export interface DebugInfo {
   error?: string;
 }
 
+export interface ProcessedPdfData {
+  measurements: RoofMeasurements;
+  error?: string;
+}
+
 export interface RoofMeasurements {
   total_area: number;
+  total_squares?: number;
   predominant_pitch: string;
   ridges?: number;
   valleys?: number;
@@ -89,6 +95,7 @@ export interface RoofMeasurements {
   penetrations?: number;
   penetrations_perimeter?: number;
   waste_percentage?: number;
+  suggested_waste_percentage?: number;
   debug_info?: {
     extraction_method: string;
     error?: string;
@@ -132,6 +139,7 @@ export interface EstimateCosts {
 }
 
 export interface PricingItem {
+  name?: string;
   price: number;
   cost?: number;
   unit: string;
