@@ -1619,6 +1619,48 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
                                 Base Rate: ${baseInstallationManufacturerPrice.toFixed(2)}/EA × {baseInstallationUnitsNeeded.toFixed(2)} EA
                               </div>
                             </div>
+                            <div>
+                              <div className="flex justify-between font-medium">
+                                <span>CDX Plywood Installation</span>
+                                <span>${(cdxPlywoodCost * (1 + profitMargin / 100)).toFixed(2)}</span>
+                              </div>
+                              <div className="text-gray-500 text-[11px] pl-2">
+                                Base Cost: ${cdxPlywoodCost.toFixed(2)} ($100.00/BRD × {cdxPlywoodQuantity} BRD)
+                                {profitMargin > 0 && (
+                                  <span className="text-green-600 ml-2">
+                                    (+${(cdxPlywoodCost * profitMargin / 100).toFixed(2)})
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="flex justify-between font-medium">
+                                <span>Dumpster Service</span>
+                                <span>${(dumpsterCost * (1 + profitMargin / 100)).toFixed(2)}</span>
+                              </div>
+                              <div className="text-gray-500 text-[11px] pl-2">
+                                Base Cost: ${dumpsterCost.toFixed(2)} ($550.00/EA × {dumpsterUnitsNeeded} EA)
+                                {profitMargin > 0 && (
+                                  <span className="text-green-600 ml-2">
+                                    (+${(dumpsterCost * profitMargin / 100).toFixed(2)})
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="flex justify-between font-medium">
+                                <span>Permits and Inspections</span>
+                                <span>${(permitsCost * (1 + profitMargin / 100)).toFixed(2)}</span>
+                              </div>
+                              <div className="text-gray-500 text-[11px] pl-2">
+                                Base Cost: ${permitsCost.toFixed(2)} ($2000.00/EA × {permitsUnitsNeeded} EA)
+                                {profitMargin > 0 && (
+                                  <span className="text-green-600 ml-2">
+                                    (+${(permitsCost * profitMargin / 100).toFixed(2)})
+                                  </span>
+                                )}
+                              </div>
+                            </div>
                             {/* Add other labor costs similarly */}
                           </div>
                         </div>
