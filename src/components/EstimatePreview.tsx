@@ -218,40 +218,19 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
   const wastePercentage = Math.max(measurements.suggested_waste_percentage || 12, 12);
 
   // Calculate base profits (difference between retail and our cost)
-  const materialBaseProfit = (
-    ((totalSquares * 152.10) - (totalSquares * 121.68)) +  // GAF Timberline HDZ Shingles
-    ((underlaymentRollsNeeded * underlaymentManufacturerPrice) - (underlaymentRollsNeeded * 94.00)) +  // GAF Weatherwatch
-    ((acmGalvalumeDripEdgeQuantity * pricing.materials.drip_edge.price) - (acmGalvalumeDripEdgeQuantity * (pricing.materials.drip_edge.cost ?? pricing.materials.drip_edge.price * 0.8))) +  // ACM Galvalume
-    ((coilNailsCost) - (coilNailsBoxesNeeded * coilNailsManufacturerPrice)) +  // Coil Nails 2 3/8"
-    ((smallCoilNailsCost) - (smallCoilNailsBoxesNeeded * smallCoilNailsManufacturerPrice)) +  // Coil Nails 1 1/4"
-    ((plasticCapNailsCost) - (plasticCapNailsBoxesNeeded * plasticCapNailsManufacturerPrice)) +  // Plastic Cap Nails
-    ((geocelSealantCost) - (geocelSealantUnitsNeeded * geocelSealantManufacturerPrice)) +  // Geocel Sealant
-    ((karnakTarCost) - (karnakTarUnitsNeeded * karnakTarManufacturerPrice))  // Karnak Roof Tar
-  );
+  const materialBaseProfit = 0;  // Base profit starts at 0 since we're using manufacturer costs
+  const laborBaseProfit = 0;  // Base profit starts at 0 since we're using manufacturer costs
+  const totalBaseProfit = 0;  // Total base profit starts at 0
 
-  const laborBaseProfit = (
-    (baseInstallationCost - (baseInstallationUnitsNeeded * baseInstallationManufacturerPrice)) +
-    (cdxPlywoodCost - (cdxPlywoodQuantity * cdxPlywoodManufacturerPrice)) +
-    (dumpsterCost - (dumpsterUnitsNeeded * dumpsterManufacturerPrice)) +
-    (permitsCost - (permitsUnitsNeeded * permitsManufacturerPrice))
-  );
-
-  const totalBaseProfit = materialBaseProfit + laborBaseProfit;
-
-  // Calculate adjusted profits based on selected tier
-  const adjustedMaterialProfit = (
-    ((totalSquares * (152.10 * (1 + shinglesMarkup / 100))) - (totalSquares * 121.68)) +  // GAF Timberline HDZ Shingles
-    ((underlaymentRollsNeeded * (underlaymentManufacturerPrice * (1 + underlaymentMarkup / 100))) - (underlaymentRollsNeeded * 94.00)) +  // GAF Weatherwatch
-    ((acmGalvalumeDripEdgeQuantity * pricing.materials.drip_edge.price) - (acmGalvalumeDripEdgeQuantity * (pricing.materials.drip_edge.cost ?? pricing.materials.drip_edge.price * 0.8))) +  // ACM Galvalume
-    ((coilNailsCost) - (coilNailsBoxesNeeded * coilNailsManufacturerPrice)) +  // Coil Nails 2 3/8"
-    ((smallCoilNailsCost) - (smallCoilNailsBoxesNeeded * smallCoilNailsManufacturerPrice)) +  // Coil Nails 1 1/4"
-    ((plasticCapNailsCost) - (plasticCapNailsBoxesNeeded * plasticCapNailsManufacturerPrice)) +  // Plastic Cap Nails
-    ((geocelSealantCost) - (geocelSealantUnitsNeeded * geocelSealantManufacturerPrice)) +  // Geocel Sealant
-    ((karnakTarCost) - (karnakTarUnitsNeeded * karnakTarManufacturerPrice))  // Karnak Roof Tar
-  );
-
-  const adjustedLaborProfit = laborBaseProfit;  // Labor profit remains the same as it's not affected by material markups
+  // Calculate adjusted profits based on profit margin
+  const adjustedMaterialProfit = totalMaterialCost * (profitMargin / 100);
+  const adjustedLaborProfit = laborCost * (profitMargin / 100);
   const adjustedTotalProfit = adjustedMaterialProfit + adjustedLaborProfit;
+
+  // Calculate final costs with profit margin
+  const finalMaterialCost = totalMaterialCost * (1 + profitMargin / 100);
+  const finalLaborCost = laborCost * (1 + profitMargin / 100);
+  const finalTotalCost = finalMaterialCost + finalLaborCost;
 
   const selectedShingle = pricing.materials.shingles.name;
 
@@ -491,6 +470,8 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
                             value={shinglesMarkup}
                             onChange={(e) => setShinglesMarkup(Number(e.target.value))}
                             className="ml-1 w-12 text-xs text-gray-500 bg-transparent border-b border-gray-300 focus:outline-none focus:border-blue-500"
+                            aria-label="Shingles markup percentage"
+                            title="Adjust markup percentage for shingles"
                           />
                           <span className="text-xs text-gray-500">%</span>
                         </td>
@@ -506,6 +487,8 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
                             value={underlaymentMarkup}
                             onChange={(e) => setUnderlaymentMarkup(Number(e.target.value))}
                             className="ml-1 w-12 text-xs text-gray-500 bg-transparent border-b border-gray-300 focus:outline-none focus:border-blue-500"
+                            aria-label="Underlayment markup percentage"
+                            title="Adjust markup percentage for underlayment"
                           />
                           <span className="text-xs text-gray-500">%</span>
                         </td>
@@ -574,6 +557,8 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
                                 }
                               }}
                               className="mr-2 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                              aria-label="Select GAF Cobra Rigid Vent"
+                              title="Include GAF Cobra Rigid Vent in estimate"
                             />
                             <span>GAF Cobra Rigid Vent 3 Exhaust Ridge Vent w/ Nails - 11-1/2" (4')</span>
                           </div>
@@ -583,9 +568,10 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
                             <input
                               type="number"
                               value={ridgeVentQuantity}
-                              onChange={(e) => setRidgeVentQuantity(Math.max(0, Number(e.target.value)))}
-                              min="0"
-                              className="w-20 text-sm bg-transparent border-b border-gray-300 focus:outline-none focus:border-blue-500"
+                              onChange={(e) => setRidgeVentQuantity(Number(e.target.value))}
+                              className="ml-2 w-16 text-sm border rounded px-1"
+                              aria-label="Ridge vent quantity"
+                              title="Enter quantity of ridge vent pieces"
                             />
                           ) : '-'} PC
                         </td>
@@ -607,6 +593,8 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
                                 }
                               }}
                               className="mr-2 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                              aria-label="Select TAMCO off ridge vent"
+                              title="Include TAMCO off ridge vent in estimate"
                             />
                             <span>TAMCO Galvanized Steel Off Ridge Vent (4') - w/ Diverter</span>
                           </div>
@@ -616,9 +604,10 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
                             <input
                               type="number"
                               value={offRidgeVentQuantity}
-                              onChange={(e) => setOffRidgeVentQuantity(Math.max(0, parseFloat(e.target.value) || 0))}
-                              min="0"
-                              className="w-20 text-sm bg-transparent border-b border-gray-300 focus:outline-none focus:border-blue-500"
+                              onChange={(e) => setOffRidgeVentQuantity(Number(e.target.value))}
+                              className="ml-2 w-16 text-sm border rounded px-1"
+                              aria-label="Off ridge vent quantity"
+                              title="Enter quantity of off ridge vent pieces"
                             />
                           ) : '-'} PC
                         </td>
@@ -639,6 +628,8 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
                                 }
                               }}
                               className="mr-2 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                              aria-label="Select 4-inch gooseneck vent"
+                              title="Include 4-inch gooseneck vent in estimate"
                             />
                             <span>Galvanized Steel Gooseneck Exhaust Vent - 4"</span>
                           </div>
@@ -648,9 +639,10 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
                             <input
                               type="number"
                               value={gooseneck4Quantity}
-                              onChange={(e) => setGooseneck4Quantity(Math.max(0, parseFloat(e.target.value) || 0))}
-                              min="0"
-                              className="w-20 text-sm bg-transparent border-b border-gray-300 focus:outline-none focus:border-blue-500"
+                              onChange={(e) => setGooseneck4Quantity(Number(e.target.value))}
+                              className="ml-2 w-16 text-sm border rounded px-1"
+                              aria-label="4-inch gooseneck quantity"
+                              title="Enter quantity of 4-inch gooseneck vents"
                             />
                           ) : '-'} EA
                         </td>
@@ -671,6 +663,8 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
                                 }
                               }}
                               className="mr-2 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                              aria-label="Select 10-inch gooseneck vent"
+                              title="Include 10-inch gooseneck vent in estimate"
                             />
                             <span>Galvalume Gooseneck Exhaust Vent - 10"</span>
                           </div>
@@ -680,9 +674,10 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
                             <input
                               type="number"
                               value={gooseneck10Quantity}
-                              onChange={(e) => setGooseneck10Quantity(Math.max(0, parseFloat(e.target.value) || 0))}
-                              min="0"
-                              className="w-20 text-sm bg-transparent border-b border-gray-300 focus:outline-none focus:border-blue-500"
+                              onChange={(e) => setGooseneck10Quantity(Number(e.target.value))}
+                              className="ml-2 w-16 text-sm border rounded px-1"
+                              aria-label="10-inch gooseneck quantity"
+                              title="Enter quantity of 10-inch gooseneck vents"
                             />
                           ) : '-'} EA
                         </td>
@@ -703,6 +698,8 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
                                 }
                               }}
                               className="mr-2 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                              aria-label="Select 1.5-inch lead flashing"
+                              title="Include 1.5-inch lead flashing in estimate"
                             />
                             <span>Lead Pipe Flashing - 2.5# - 1 1/2"</span>
                           </div>
@@ -712,9 +709,10 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
                             <input
                               type="number"
                               value={leadFlashing15Quantity}
-                              onChange={(e) => setLeadFlashing15Quantity(Math.max(0, parseFloat(e.target.value) || 0))}
-                              min="0"
-                              className="w-20 text-sm bg-transparent border-b border-gray-300 focus:outline-none focus:border-blue-500"
+                              onChange={(e) => setLeadFlashing15Quantity(Number(e.target.value))}
+                              className="ml-2 w-16 text-sm border rounded px-1"
+                              aria-label="1.5-inch lead flashing quantity"
+                              title="Enter quantity of 1.5-inch lead flashing"
                             />
                           ) : '-'} EA
                         </td>
@@ -735,6 +733,8 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
                                 }
                               }}
                               className="mr-2 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                              aria-label="Select 2-inch lead flashing"
+                              title="Include 2-inch lead flashing in estimate"
                             />
                             <span>Lead Pipe Flashing - 2"</span>
                           </div>
@@ -744,9 +744,10 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
                             <input
                               type="number"
                               value={leadFlashing2Quantity}
-                              onChange={(e) => setLeadFlashing2Quantity(Math.max(0, parseFloat(e.target.value) || 0))}
-                              min="0"
-                              className="w-20 text-sm bg-transparent border-b border-gray-300 focus:outline-none focus:border-blue-500"
+                              onChange={(e) => setLeadFlashing2Quantity(Number(e.target.value))}
+                              className="ml-2 w-16 text-sm border rounded px-1"
+                              aria-label="2-inch lead flashing quantity"
+                              title="Enter quantity of 2-inch lead flashing"
                             />
                           ) : '-'} EA
                         </td>
@@ -767,6 +768,8 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
                                 }
                               }}
                               className="mr-2 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                              aria-label="Select 3-inch lead flashing"
+                              title="Include 3-inch lead flashing in estimate"
                             />
                             <span>Lead Pipe Flashing - 3"</span>
                           </div>
@@ -776,9 +779,10 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
                             <input
                               type="number"
                               value={leadFlashing3Quantity}
-                              onChange={(e) => setLeadFlashing3Quantity(Math.max(0, parseFloat(e.target.value) || 0))}
-                              min="0"
-                              className="w-20 text-sm bg-transparent border-b border-gray-300 focus:outline-none focus:border-blue-500"
+                              onChange={(e) => setLeadFlashing3Quantity(Number(e.target.value))}
+                              className="ml-2 w-16 text-sm border rounded px-1"
+                              aria-label="3-inch lead flashing quantity"
+                              title="Enter quantity of 3-inch lead flashing"
                             />
                           ) : '-'} EA
                         </td>
@@ -799,6 +803,8 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
                                 }
                               }}
                               className="mr-2 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                              aria-label="Select 1.5-inch bullet boot"
+                              title="Include 1.5-inch bullet boot in estimate"
                             />
                             <span>Bullet Boot Pipe Flashing - 1 1/2"</span>
                           </div>
@@ -808,9 +814,10 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
                             <input
                               type="number"
                               value={bulletBoot15Quantity}
-                              onChange={(e) => setBulletBoot15Quantity(Math.max(0, parseFloat(e.target.value) || 0))}
-                              min="0"
-                              className="w-20 text-sm bg-transparent border-b border-gray-300 focus:outline-none focus:border-blue-500"
+                              onChange={(e) => setBulletBoot15Quantity(Number(e.target.value))}
+                              className="ml-2 w-16 text-sm border rounded px-1"
+                              aria-label="1.5-inch bullet boot quantity"
+                              title="Enter quantity of 1.5-inch bullet boots"
                             />
                           ) : '-'} EA
                         </td>
@@ -831,6 +838,8 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
                                 }
                               }}
                               className="mr-2 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                              aria-label="Select 2-inch bullet boot"
+                              title="Include 2-inch bullet boot in estimate"
                             />
                             <span>Bullet Boot Pipe Flashing - 2"</span>
                           </div>
@@ -840,9 +849,10 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
                             <input
                               type="number"
                               value={bulletBoot2Quantity}
-                              onChange={(e) => setBulletBoot2Quantity(Math.max(0, parseFloat(e.target.value) || 0))}
-                              min="0"
-                              className="w-20 text-sm bg-transparent border-b border-gray-300 focus:outline-none focus:border-blue-500"
+                              onChange={(e) => setBulletBoot2Quantity(Number(e.target.value))}
+                              className="ml-2 w-16 text-sm border rounded px-1"
+                              aria-label="2-inch bullet boot quantity"
+                              title="Enter quantity of 2-inch bullet boots"
                             />
                           ) : '-'} EA
                         </td>
@@ -863,6 +873,8 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
                                 }
                               }}
                               className="mr-2 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                              aria-label="Select 3-inch bullet boot"
+                              title="Include 3-inch bullet boot in estimate"
                             />
                             <span>Bullet Boot Pipe Flashing - 3"</span>
                           </div>
@@ -872,9 +884,10 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
                             <input
                               type="number"
                               value={bulletBoot3Quantity}
-                              onChange={(e) => setBulletBoot3Quantity(Math.max(0, parseFloat(e.target.value) || 0))}
-                              min="0"
-                              className="w-20 text-sm bg-transparent border-b border-gray-300 focus:outline-none focus:border-blue-500"
+                              onChange={(e) => setBulletBoot3Quantity(Number(e.target.value))}
+                              className="ml-2 w-16 text-sm border rounded px-1"
+                              aria-label="3-inch bullet boot quantity"
+                              title="Enter quantity of 3-inch bullet boots"
                             />
                           ) : '-'} EA
                         </td>
@@ -895,6 +908,8 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
                                 }
                               }}
                               className="mr-2 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                              aria-label="Select 4-inch bullet boot"
+                              title="Include 4-inch bullet boot in estimate"
                             />
                             <span>Bullet Boot Pipe Flashing - 4"</span>
                           </div>
@@ -904,9 +919,10 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
                             <input
                               type="number"
                               value={bulletBoot4Quantity}
-                              onChange={(e) => setBulletBoot4Quantity(Math.max(0, parseFloat(e.target.value) || 0))}
-                              min="0"
-                              className="w-20 text-sm bg-transparent border-b border-gray-300 focus:outline-none focus:border-blue-500"
+                              onChange={(e) => setBulletBoot4Quantity(Number(e.target.value))}
+                              className="ml-2 w-16 text-sm border rounded px-1"
+                              aria-label="4-inch bullet boot quantity"
+                              title="Enter quantity of 4-inch bullet boots"
                             />
                           ) : '-'} EA
                         </td>
@@ -927,6 +943,8 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
                                 }
                               }}
                               className="mr-2 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                              aria-label="Select zip seal"
+                              title="Include zip seal in estimate"
                             />
                             <span>Golden Rule ZipSeal Large EPDM Retrofit Electric Mast Flashing - 0"-5 3/8" - Black</span>
                           </div>
@@ -936,9 +954,10 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
                             <input
                               type="number"
                               value={zipSealQuantity}
-                              onChange={(e) => setZipSealQuantity(Math.max(0, parseFloat(e.target.value) || 0))}
-                              min="0"
-                              className="w-20 text-sm bg-transparent border-b border-gray-300 focus:outline-none focus:border-blue-500"
+                              onChange={(e) => setZipSealQuantity(Number(e.target.value))}
+                              className="ml-2 w-16 text-sm border rounded px-1"
+                              aria-label="Zip seal quantity"
+                              title="Enter quantity of zip seals"
                             />
                           ) : '-'} EA
                         </td>
@@ -1097,24 +1116,7 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
               <div className={`transition-all duration-300 ease-in-out ${isProjectSummaryOpen ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0 overflow-hidden'}`}>
                 <div className="space-y-6">
                   {/* Price Tier Selection */}
-                  <div className="grid grid-cols-3 gap-4 mb-6">
-                    <div 
-                      className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                        selectedPriceTier === 'economy' 
-                          ? 'border-blue-500 bg-blue-50' 
-                          : 'border-gray-200 hover:border-blue-300'
-                      }`}
-                      onClick={() => {
-                        setSelectedPriceTier('economy');
-                        setShinglesMarkup(-10);
-                        setUnderlaymentMarkup(-10);
-                        setAcmMarkup(-10);
-                      }}
-                    >
-                      <h4 className="text-lg font-semibold text-center mb-2">Economy</h4>
-                      <p className="text-2xl font-bold text-center text-blue-600">${economyPricePerSquare.toFixed(2)}<span className="text-sm font-normal">/Square</span></p>
-                      <p className="text-sm text-gray-500 text-center mt-2">-10% markup on materials</p>
-                    </div>
+                  <div className="grid grid-cols-4 gap-4 mb-6">
                     <div 
                       className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
                         selectedPriceTier === 'standard' 
@@ -1123,15 +1125,30 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
                       }`}
                       onClick={() => {
                         setSelectedPriceTier('standard');
-                        setShinglesMarkup(0);
-                        setUnderlaymentMarkup(0);
-                        setAcmMarkup(0);
+                        setProfitMargin(0);
                       }}
                     >
                       <h4 className="text-lg font-semibold text-center mb-2">Standard</h4>
-                      <p className="text-2xl font-bold text-center text-blue-600">${standardPricePerSquare.toFixed(2)}<span className="text-sm font-normal">/Square</span></p>
-                      <p className="text-sm text-gray-500 text-center mt-2">Natural base pricing</p>
+                      <p className="text-2xl font-bold text-center text-blue-600">${(totalCostWithLabor / totalSquares).toFixed(2)}<span className="text-sm font-normal">/Square</span></p>
+                      <p className="text-sm text-gray-500 text-center mt-2">Base cost (0% profit)</p>
                     </div>
+
+                    <div 
+                      className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                        selectedPriceTier === 'economy' 
+                          ? 'border-blue-500 bg-blue-50' 
+                          : 'border-gray-200 hover:border-blue-300'
+                      }`}
+                      onClick={() => {
+                        setSelectedPriceTier('economy');
+                        setProfitMargin(10);
+                      }}
+                    >
+                      <h4 className="text-lg font-semibold text-center mb-2">Economy</h4>
+                      <p className="text-2xl font-bold text-center text-blue-600">${((totalCostWithLabor * 1.1) / totalSquares).toFixed(2)}<span className="text-sm font-normal">/Square</span></p>
+                      <p className="text-sm text-gray-500 text-center mt-2">10% profit margin</p>
+                    </div>
+
                     <div 
                       className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
                         selectedPriceTier === 'premium' 
@@ -1140,282 +1157,348 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
                       }`}
                       onClick={() => {
                         setSelectedPriceTier('premium');
-                        setShinglesMarkup(20);
-                        setUnderlaymentMarkup(20);
-                        setAcmMarkup(20);
+                        setProfitMargin(20);
                       }}
                     >
                       <h4 className="text-lg font-semibold text-center mb-2">Premium</h4>
-                      <p className="text-2xl font-bold text-center text-blue-600">${premiumPricePerSquare.toFixed(2)}<span className="text-sm font-normal">/Square</span></p>
-                      <p className="text-sm text-gray-500 text-center mt-2">+20% markup on materials</p>
+                      <p className="text-2xl font-bold text-center text-blue-600">${((totalCostWithLabor * 1.2) / totalSquares).toFixed(2)}<span className="text-sm font-normal">/Square</span></p>
+                      <p className="text-sm text-gray-500 text-center mt-2">20% profit margin</p>
+                    </div>
+
+                    <div 
+                      className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                        selectedPriceTier === 'custom' 
+                          ? 'border-blue-500 bg-blue-50' 
+                          : 'border-gray-200 hover:border-blue-300'
+                      }`}
+                      onClick={() => {
+                        setSelectedPriceTier('custom');
+                      }}
+                    >
+                      <h4 className="text-lg font-semibold text-center mb-2">Custom</h4>
+                      <p className="text-2xl font-bold text-center text-blue-600">${((totalCostWithLabor * (1 + profitMargin / 100)) / totalSquares).toFixed(2)}<span className="text-sm font-normal">/Square</span></p>
+                      <p className="text-sm text-gray-500 text-center mt-2">Adjustable margin</p>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="bg-gray-50 p-4 rounded-lg">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm font-medium text-gray-600">Total Material Cost</span>
-                        <span className="text-lg font-semibold">
-                          ${totalMaterialCost.toFixed(2)}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center mt-2">
-                        <span className="text-sm text-gray-500">Base Material Profit</span>
-                        <span className="text-sm font-medium text-green-600">
-                          ${materialBaseProfit.toFixed(2)}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center mt-2">
-                        <span className="text-sm text-gray-500">Adjusted Material Profit</span>
-                        <span className="text-sm font-medium text-blue-600">
-                          ${adjustedMaterialProfit.toFixed(2)}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center mt-2">
-                        <span className="text-sm text-gray-500">Base Labor Profit</span>
-                        <span className="text-sm font-medium text-green-600">
-                          ${laborBaseProfit.toFixed(2)}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center mt-2">
-                        <span className="text-sm text-gray-500">Total Base Profit</span>
-                        <span className="text-sm font-medium text-green-600">
-                          ${totalBaseProfit.toFixed(2)}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center mt-2">
-                        <span className="text-sm text-gray-500">Total Adjusted Profit</span>
-                        <span className="text-sm font-medium text-blue-600">
-                          ${adjustedTotalProfit.toFixed(2)}
-                        </span>
-                      </div>
-                      <div className="mt-3 text-xs space-y-1">
-                        <div className="text-gray-500 font-medium">Material Profit Details:</div>
-                        <div>
-                          <div className="flex justify-between">
-                            <span>{selectedShingle}</span>
-                            <span className="text-green-600">${((totalSquares * 152.10) - (totalSquares * 121.68)).toFixed(2)}</span>
+                  {/* Show detailed cost breakdown only when Custom is selected */}
+                  {selectedPriceTier === 'custom' && (
+                    <div className="space-y-6">
+                      <div className="bg-gray-50 p-4 rounded-lg">
+                        <div className="space-y-4">
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm font-medium text-gray-600">Profit Margin</span>
+                            <span className="text-lg font-semibold text-blue-600">{profitMargin}%</span>
                           </div>
-                          <div className="text-gray-400 text-[11px] italic pl-2">
-                            Our Retail Price: ${152.10}/SQ × {totalSquares.toFixed(2)} SQ
-                          </div>
-                          <div className="text-gray-400 text-[11px] italic pl-2">
-                            Manufacturer Cost: $121.68/SQ × {totalSquares.toFixed(2)} SQ
-                          </div>
-                        </div>
-                        <div>
-                          <div className="flex justify-between">
-                            <span>GAF Weatherwatch Ice & Water Shield</span>
-                            <span className="text-green-600">${((underlaymentRollsNeeded * underlaymentManufacturerPrice) - (underlaymentRollsNeeded * 94.00)).toFixed(2)}</span>
-                          </div>
-                          <div className="text-gray-400 text-[11px] italic pl-2">
-                            Our Retail Price: ${underlaymentManufacturerPrice.toFixed(2)}/EA × {underlaymentRollsNeeded} EA
-                          </div>
-                          <div className="text-gray-400 text-[11px] italic pl-2">
-                            Manufacturer Cost: $94.00/EA × {underlaymentRollsNeeded} EA
-                          </div>
-                        </div>
-                        <div>
-                          <div className="flex justify-between">
-                            <span>ACM Galvalume Drip Edge</span>
-                            <span className="text-green-600">${((acmGalvalumeDripEdgeQuantity * pricing.materials.drip_edge.price) - (acmGalvalumeDripEdgeQuantity * (pricing.materials.drip_edge.cost ?? pricing.materials.drip_edge.price * 0.8))).toFixed(2)}</span>
-                          </div>
-                          <div className="text-gray-400 text-[11px] italic pl-2">
-                            Our Retail Price: ${pricing.materials.drip_edge.price.toFixed(2)}/PC × {acmGalvalumeDripEdgeQuantity} PC
-                          </div>
-                          <div className="text-gray-400 text-[11px] italic pl-2">
-                            Manufacturer Cost: ${(pricing.materials.drip_edge.cost ?? pricing.materials.drip_edge.price * 0.8).toFixed(2)}/PC × {acmGalvalumeDripEdgeQuantity} PC
-                          </div>
-                        </div>
-                        <div>
-                          <div className="flex justify-between">
-                            <span>Coil Nails (2 3/8")</span>
-                            <span className="text-green-600">${((coilNailsCost) - (coilNailsBoxesNeeded * coilNailsManufacturerPrice)).toFixed(2)}</span>
-                          </div>
-                          <div className="text-gray-400 text-[11px] italic pl-2">
-                            Our Retail Price: ${coilNailsManufacturerPrice.toFixed(2)}/BX × {coilNailsBoxesNeeded} BX
-                          </div>
-                          <div className="text-gray-400 text-[11px] italic pl-2">
-                            Manufacturer Cost: ${coilNailsManufacturerPrice.toFixed(2)}/BX × {coilNailsBoxesNeeded} BX
-                          </div>
-                        </div>
-                        <div>
-                          <div className="flex justify-between">
-                            <span>Coil Nails (1 1/4")</span>
-                            <span className="text-green-600">${((smallCoilNailsCost) - (smallCoilNailsBoxesNeeded * smallCoilNailsManufacturerPrice)).toFixed(2)}</span>
-                          </div>
-                          <div className="text-gray-400 text-[11px] italic pl-2">
-                            Our Retail Price: ${smallCoilNailsManufacturerPrice.toFixed(2)}/BX × {smallCoilNailsBoxesNeeded} BX
-                          </div>
-                          <div className="text-gray-400 text-[11px] italic pl-2">
-                            Manufacturer Cost: ${smallCoilNailsManufacturerPrice.toFixed(2)}/BX × {smallCoilNailsBoxesNeeded} BX
-                          </div>
-                        </div>
-                        <div>
-                          <div className="flex justify-between">
-                            <span>Plastic Cap Nails</span>
-                            <span className="text-green-600">${((plasticCapNailsCost) - (plasticCapNailsBoxesNeeded * plasticCapNailsManufacturerPrice)).toFixed(2)}</span>
-                          </div>
-                          <div className="text-gray-400 text-[11px] italic pl-2">
-                            Our Retail Price: ${plasticCapNailsManufacturerPrice.toFixed(2)}/BX × {plasticCapNailsBoxesNeeded} BX
-                          </div>
-                          <div className="text-gray-400 text-[11px] italic pl-2">
-                            Manufacturer Cost: ${plasticCapNailsManufacturerPrice.toFixed(2)}/BX × {plasticCapNailsBoxesNeeded} BX
-                          </div>
-                        </div>
-                        <div>
-                          <div className="flex justify-between">
-                            <span>Geocel Sealant</span>
-                            <span className="text-green-600">${((geocelSealantCost) - (geocelSealantUnitsNeeded * geocelSealantManufacturerPrice)).toFixed(2)}</span>
-                          </div>
-                          <div className="text-gray-400 text-[11px] italic pl-2">
-                            Our Retail Price: ${geocelSealantManufacturerPrice.toFixed(2)}/EA × {geocelSealantUnitsNeeded} EA
-                          </div>
-                          <div className="text-gray-400 text-[11px] italic pl-2">
-                            Manufacturer Cost: ${geocelSealantManufacturerPrice.toFixed(2)}/EA × {geocelSealantUnitsNeeded} EA
-                          </div>
-                        </div>
-                        <div>
-                          <div className="flex justify-between">
-                            <span>Karnak Roof Tar</span>
-                            <span className="text-green-600">${((karnakTarCost) - (karnakTarUnitsNeeded * karnakTarManufacturerPrice)).toFixed(2)}</span>
-                          </div>
-                          <div className="text-gray-400 text-[11px] italic pl-2">
-                            Our Retail Price: ${karnakTarManufacturerPrice.toFixed(2)}/EA × {karnakTarUnitsNeeded} EA
-                          </div>
-                          <div className="text-gray-400 text-[11px] italic pl-2">
-                            Manufacturer Cost: ${karnakTarManufacturerPrice.toFixed(2)}/EA × {karnakTarUnitsNeeded} EA
-                          </div>
-                        </div>
-                        {isRidgeVentSelected && (
-                          <div>
-                            <div className="flex justify-between">
-                              <span>GAF Cobra Rigid Vent</span>
-                              <span className="text-green-600">${((ridgeVentPiecesNeeded * ridgeVentRetailPrice) - (ridgeVentPiecesNeeded * ridgeVentOurCost)).toFixed(2)}</span>
-                            </div>
-                            <div className="text-gray-400 text-[11px] italic pl-2">
-                              Our Retail Price: ${ridgeVentRetailPrice.toFixed(2)}/PC × {ridgeVentPiecesNeeded} PC
-                            </div>
-                            <div className="text-gray-400 text-[11px] italic pl-2">
-                              Manufacturer Cost: ${ridgeVentOurCost.toFixed(2)}/PC × {ridgeVentPiecesNeeded} PC
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    <div className="bg-gray-50 p-4 rounded-lg">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm font-medium text-gray-600">Total Labor Cost</span>
-                        <span className="text-lg font-semibold">${laborCost.toFixed(2)}</span>
-                      </div>
-                      <div className="flex justify-between items-center mt-2">
-                        <span className="text-sm text-gray-500">Base Labor Profit</span>
-                        <span className="text-sm font-medium text-green-600">
-                          ${laborBaseProfit.toFixed(2)}
-                        </span>
-                      </div>
-                      <div className="mt-3 text-xs space-y-1">
-                        <div className="text-gray-500 font-medium">Labor Profit Details:</div>
-                        <div>
-                          <div className="flex justify-between">
-                            <span>Base Installation</span>
-                            <span className="text-green-600">${(baseInstallationCost - (baseInstallationUnitsNeeded * baseInstallationManufacturerPrice)).toFixed(2)}</span>
-                          </div>
-                          <div className="text-gray-400 text-[11px] italic pl-2">
-                            Our Retail Price: ${baseInstallationManufacturerPrice.toFixed(2)}/EA × {baseInstallationUnitsNeeded.toFixed(2)} EA
-                          </div>
-                          <div className="text-gray-400 text-[11px] italic pl-2">
-                            Manufacturer Cost: ${baseInstallationManufacturerPrice.toFixed(2)}/EA × {baseInstallationUnitsNeeded.toFixed(2)} EA
-                          </div>
-                        </div>
-                        <div>
-                          <div className="flex justify-between">
-                            <span>CDX Plywood</span>
-                            <span className="text-green-600">${(cdxPlywoodCost - (cdxPlywoodQuantity * cdxPlywoodManufacturerPrice)).toFixed(2)}</span>
-                          </div>
-                          <div className="text-gray-400 text-[11px] italic pl-2">
-                            Our Retail Price: ${cdxPlywoodManufacturerPrice.toFixed(2)}/BRD × {cdxPlywoodQuantity} BRD
-                          </div>
-                          <div className="text-gray-400 text-[11px] italic pl-2">
-                            Manufacturer Cost: ${cdxPlywoodManufacturerPrice.toFixed(2)}/BRD × {cdxPlywoodQuantity} BRD
-                          </div>
-                        </div>
-                        <div>
-                          <div className="flex justify-between">
-                            <span>Dumpster</span>
-                            <span className="text-green-600">${(dumpsterCost - (dumpsterUnitsNeeded * dumpsterManufacturerPrice)).toFixed(2)}</span>
-                          </div>
-                          <div className="text-gray-400 text-[11px] italic pl-2">
-                            Our Retail Price: ${dumpsterManufacturerPrice.toFixed(2)}/EA × {dumpsterUnitsNeeded} EA
-                          </div>
-                          <div className="text-gray-400 text-[11px] italic pl-2">
-                            Manufacturer Cost: ${dumpsterManufacturerPrice.toFixed(2)}/EA × {dumpsterUnitsNeeded} EA
-                          </div>
-                        </div>
-                        <div>
-                          <div className="flex justify-between">
-                            <span>Permits and Inspections</span>
-                            <span className="text-green-600">${(permitsCost - (permitsUnitsNeeded * permitsManufacturerPrice)).toFixed(2)}</span>
-                          </div>
-                          <div className="text-gray-400 text-[11px] italic pl-2">
-                            Our Retail Price: ${permitsManufacturerPrice.toFixed(2)}/EA × {permitsUnitsNeeded} EA
-                          </div>
-                          <div className="text-gray-400 text-[11px] italic pl-2">
-                            Manufacturer Cost: ${permitsManufacturerPrice.toFixed(2)}/EA × {permitsUnitsNeeded} EA
+                          <Slider
+                            defaultValue={[0]}
+                            max={100}
+                            step={1}
+                            className="w-full"
+                            onValueChange={(values: number[]) => setProfitMargin(values[0])}
+                            aria-label="Adjust profit margin percentage"
+                            title="Drag to adjust profit margin percentage"
+                          />
+                          <div className="flex justify-between text-xs text-gray-500">
+                            <span>0%</span>
+                            <span>50%</span>
+                            <span>100%</span>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  </div>
 
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium text-gray-600">Total Base Profit</span>
-                      <span className="text-lg font-semibold text-green-600">
-                        ${totalBaseProfit.toFixed(2)}
-                      </span>
-                    </div>
-                  </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="bg-gray-50 p-4 rounded-lg">
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm font-medium text-gray-600">Total Material Cost (Base)</span>
+                            <span className="text-lg font-semibold">
+                              ${totalMaterialCost.toFixed(2)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center mt-2">
+                            <span className="text-sm text-gray-500">Additional Material Profit</span>
+                            <span className="text-sm font-medium text-green-600">
+                              ${adjustedMaterialProfit.toFixed(2)}
+                            </span>
+                          </div>
+                          <div className="mt-4 text-xs space-y-2">
+                            <div className="text-gray-600 font-medium border-b pb-1">Material Cost Breakdown:</div>
+                            <div>
+                              <div className="flex justify-between font-medium">
+                                <span>{selectedShingle}</span>
+                                <span>${(totalSquares * shinglesBasePrice * (1 + profitMargin / 100)).toFixed(2)}</span>
+                              </div>
+                              <div className="text-gray-500 text-[11px] pl-2">
+                                Base Cost: ${(totalSquares * shinglesBasePrice).toFixed(2)} ($121.68/SQ × {totalSquares.toFixed(2)} SQ)
+                                {profitMargin > 0 && (
+                                  <span className="text-green-600 ml-2">
+                                    (+${((totalSquares * shinglesBasePrice * profitMargin / 100)).toFixed(2)})
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="flex justify-between font-medium">
+                                <span>GAF Weatherwatch Ice & Water Shield</span>
+                                <span>${(underlaymentRollsNeeded * underlaymentManufacturerPrice * (1 + profitMargin / 100)).toFixed(2)}</span>
+                              </div>
+                              <div className="text-gray-500 text-[11px] pl-2">
+                                Base Cost: ${(underlaymentRollsNeeded * underlaymentManufacturerPrice).toFixed(2)} ($94.00/EA × {underlaymentRollsNeeded} EA)
+                                {profitMargin > 0 && (
+                                  <span className="text-green-600 ml-2">
+                                    (+${(underlaymentRollsNeeded * underlaymentManufacturerPrice * profitMargin / 100).toFixed(2)})
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="flex justify-between font-medium">
+                                <span>GAF ProStart Starter Shingle Strip</span>
+                                <span>${((totalSquares / 3 * 61.20) * (1 + profitMargin / 100)).toFixed(2)}</span>
+                              </div>
+                              <div className="text-gray-500 text-[11px] pl-2">
+                                Base Cost: ${(totalSquares / 3 * 61.20).toFixed(2)} ($61.20/BD × {(totalSquares / 3).toFixed(2)} BD)
+                                {profitMargin > 0 && (
+                                  <span className="text-green-600 ml-2">
+                                    (+${((totalSquares / 3 * 61.20) * profitMargin / 100).toFixed(2)})
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="flex justify-between font-medium">
+                                <span>GAF Seal-A-Ridge</span>
+                                <span>${((totalSquares / 3 * 65.00) * (1 + profitMargin / 100)).toFixed(2)}</span>
+                              </div>
+                              <div className="text-gray-500 text-[11px] pl-2">
+                                Base Cost: ${(totalSquares / 3 * 65.00).toFixed(2)} ($65.00/BD × {(totalSquares / 3).toFixed(2)} BD)
+                                {profitMargin > 0 && (
+                                  <span className="text-green-600 ml-2">
+                                    (+${((totalSquares / 3 * 65.00) * profitMargin / 100).toFixed(2)})
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="flex justify-between font-medium">
+                                <span>ACM Galvalume Drip Edge</span>
+                                <span>${(acmGalvalumeDripEdgeCost * (1 + profitMargin / 100)).toFixed(2)}</span>
+                              </div>
+                              <div className="text-gray-500 text-[11px] pl-2">
+                                Base Cost: ${acmGalvalumeDripEdgeCost.toFixed(2)} ($6.00/PC × {acmGalvalumeDripEdgeQuantity} PC)
+                                {profitMargin > 0 && (
+                                  <span className="text-green-600 ml-2">
+                                    (+${(acmGalvalumeDripEdgeCost * profitMargin / 100).toFixed(2)})
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="flex justify-between font-medium">
+                                <span>Coil Nails - 2 3/8"</span>
+                                <span>${(coilNailsCost * (1 + profitMargin / 100)).toFixed(2)}</span>
+                              </div>
+                              <div className="text-gray-500 text-[11px] pl-2">
+                                Base Cost: ${coilNailsCost.toFixed(2)} ($64.44/BX × {coilNailsBoxesNeeded} BX)
+                                {profitMargin > 0 && (
+                                  <span className="text-green-600 ml-2">
+                                    (+${(coilNailsCost * profitMargin / 100).toFixed(2)})
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="flex justify-between font-medium">
+                                <span>Roofing Coil Nails - 1 1/4"</span>
+                                <span>${(smallCoilNailsCost * (1 + profitMargin / 100)).toFixed(2)}</span>
+                              </div>
+                              <div className="text-gray-500 text-[11px] pl-2">
+                                Base Cost: ${smallCoilNailsCost.toFixed(2)} ($53.89/BX × {smallCoilNailsBoxesNeeded} BX)
+                                {profitMargin > 0 && (
+                                  <span className="text-green-600 ml-2">
+                                    (+${(smallCoilNailsCost * profitMargin / 100).toFixed(2)})
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="flex justify-between font-medium">
+                                <span>Plastic Cap Nails - 1"</span>
+                                <span>${(plasticCapNailsCost * (1 + profitMargin / 100)).toFixed(2)}</span>
+                              </div>
+                              <div className="text-gray-500 text-[11px] pl-2">
+                                Base Cost: ${plasticCapNailsCost.toFixed(2)} ($39.44/BX × {plasticCapNailsBoxesNeeded} BX)
+                                {profitMargin > 0 && (
+                                  <span className="text-green-600 ml-2">
+                                    (+${(plasticCapNailsCost * profitMargin / 100).toFixed(2)})
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="flex justify-between font-medium">
+                                <span>Geocel 2300 Sealant</span>
+                                <span>${(geocelSealantCost * (1 + profitMargin / 100)).toFixed(2)}</span>
+                              </div>
+                              <div className="text-gray-500 text-[11px] pl-2">
+                                Base Cost: ${geocelSealantCost.toFixed(2)} ($9.69/EA × {geocelSealantUnitsNeeded} EA)
+                                {profitMargin > 0 && (
+                                  <span className="text-green-600 ml-2">
+                                    (+${(geocelSealantCost * profitMargin / 100).toFixed(2)})
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="flex justify-between font-medium">
+                                <span>Karnak 19 Ultra Roof Tar</span>
+                                <span>${(karnakTarCost * (1 + profitMargin / 100)).toFixed(2)}</span>
+                              </div>
+                              <div className="text-gray-500 text-[11px] pl-2">
+                                Base Cost: ${karnakTarCost.toFixed(2)} ($42.06/EA × {karnakTarUnitsNeeded} EA)
+                                {profitMargin > 0 && (
+                                  <span className="text-green-600 ml-2">
+                                    (+${(karnakTarCost * profitMargin / 100).toFixed(2)})
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            {offRidgeVentSelected && (
+                              <div>
+                                <div className="flex justify-between font-medium">
+                                  <span>TAMCO Off Ridge Vent</span>
+                                  <span>${(offRidgeVentCost * (1 + profitMargin / 100)).toFixed(2)}</span>
+                                </div>
+                                <div className="text-gray-500 text-[11px] pl-2">
+                                  Base Cost: ${offRidgeVentCost.toFixed(2)} ($75.00/PC × {offRidgeVentQuantity} PC)
+                                  {profitMargin > 0 && (
+                                    <span className="text-green-600 ml-2">
+                                      (+${(offRidgeVentCost * profitMargin / 100).toFixed(2)})
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                            {gooseneck4Selected && (
+                              <div>
+                                <div className="flex justify-between font-medium">
+                                  <span>Gooseneck Vent - 4"</span>
+                                  <span>${(gooseneck4Cost * (1 + profitMargin / 100)).toFixed(2)}</span>
+                                </div>
+                                <div className="text-gray-500 text-[11px] pl-2">
+                                  Base Cost: ${gooseneck4Cost.toFixed(2)} ($38.50/EA × {gooseneck4Quantity} EA)
+                                  {profitMargin > 0 && (
+                                    <span className="text-green-600 ml-2">
+                                      (+${(gooseneck4Cost * profitMargin / 100).toFixed(2)})
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                            {gooseneck10Selected && (
+                              <div>
+                                <div className="flex justify-between font-medium">
+                                  <span>Gooseneck Vent - 10"</span>
+                                  <span>${(gooseneck10Cost * (1 + profitMargin / 100)).toFixed(2)}</span>
+                                </div>
+                                <div className="text-gray-500 text-[11px] pl-2">
+                                  Base Cost: ${gooseneck10Cost.toFixed(2)} ($48.88/EA × {gooseneck10Quantity} EA)
+                                  {profitMargin > 0 && (
+                                    <span className="text-green-600 ml-2">
+                                      (+${(gooseneck10Cost * profitMargin / 100).toFixed(2)})
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                            {isLibertyBaseSheetSelected && (
+                              <div>
+                                <div className="flex justify-between font-medium">
+                                  <span>GAF Liberty Base Sheet</span>
+                                  <span>${(libertyBaseSheetCost * (1 + profitMargin / 100)).toFixed(2)}</span>
+                                </div>
+                                <div className="text-gray-500 text-[11px] pl-2">
+                                  Base Cost: ${libertyBaseSheetCost.toFixed(2)} ($112.74/RL × {libertyBaseSheetQuantity} RL)
+                                  {profitMargin > 0 && (
+                                    <span className="text-green-600 ml-2">
+                                      (+${(libertyBaseSheetCost * profitMargin / 100).toFixed(2)})
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                            {isLibertyCapSheetSelected && (
+                              <div>
+                                <div className="flex justify-between font-medium">
+                                  <span>GAF Liberty Cap Sheet</span>
+                                  <span>${(libertyCapSheetCost * (1 + profitMargin / 100)).toFixed(2)}</span>
+                                </div>
+                                <div className="text-gray-500 text-[11px] pl-2">
+                                  Base Cost: ${libertyCapSheetCost.toFixed(2)} ($115.08/RL × {libertyCapSheetQuantity} RL)
+                                  {profitMargin > 0 && (
+                                    <span className="text-green-600 ml-2">
+                                      (+${(libertyCapSheetCost * profitMargin / 100).toFixed(2)})
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
 
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <div className="space-y-4">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm font-medium text-gray-600">Profit Margin</span>
-                        <span className="text-lg font-semibold text-blue-600">{profitMargin}%</span>
+                        <div className="bg-gray-50 p-4 rounded-lg">
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm font-medium text-gray-600">Total Labor Cost (Base)</span>
+                            <span className="text-lg font-semibold">${laborCost.toFixed(2)}</span>
+                          </div>
+                          <div className="flex justify-between items-center mt-2">
+                            <span className="text-sm text-gray-500">Additional Labor Profit</span>
+                            <span className="text-sm font-medium text-green-600">
+                              ${adjustedLaborProfit.toFixed(2)}
+                            </span>
+                          </div>
+                          <div className="mt-4 text-xs space-y-2">
+                            <div className="text-gray-600 font-medium border-b pb-1">Labor Cost Breakdown:</div>
+                            <div>
+                              <div className="flex justify-between font-medium">
+                                <span>Base Installation</span>
+                                <span>${(baseInstallationUnitsNeeded * baseInstallationManufacturerPrice).toFixed(2)}</span>
+                              </div>
+                              <div className="text-gray-500 text-[11px] pl-2">
+                                Base Rate: ${baseInstallationManufacturerPrice.toFixed(2)}/EA × {baseInstallationUnitsNeeded.toFixed(2)} EA
+                              </div>
+                            </div>
+                            {/* Add other labor costs similarly */}
+                          </div>
+                        </div>
                       </div>
-                      <Slider
-                        defaultValue={[0]}
-                        max={50}
-                        step={1}
-                        className="w-full"
-                        onValueChange={(values: number[]) => setProfitMargin(values[0])}
-                      />
-                      <div className="flex justify-between text-xs text-gray-500">
-                        <span>0%</span>
-                        <span>25%</span>
-                        <span>50%</span>
+
+                      <div className="bg-gray-50 p-4 rounded-lg">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm font-medium text-gray-600">Total Project Cost (Base)</span>
+                          <span className="text-lg font-semibold">${(totalMaterialCost + laborCost).toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between items-center mt-2">
+                          <span className="text-sm text-gray-500">Additional Total Profit</span>
+                          <span className="text-sm font-medium text-green-600">
+                            ${adjustedTotalProfit.toFixed(2)}
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  )}
 
                   <div className="bg-blue-50 p-6 rounded-lg">
                     <div className="flex justify-between items-center">
                       <div>
-                        <span className="text-lg font-semibold text-blue-900">Grand Total</span>
-                        <span className="text-sm text-blue-700 ml-2">(with {profitMargin}% margin)</span>
+                        <span className="text-lg font-semibold text-blue-900">Final Project Total</span>
+                        <span className="text-sm text-blue-700 ml-2">({selectedPriceTier} pricing)</span>
                       </div>
                       <span className="text-3xl font-bold text-blue-900">
-                        ${(totalCost * (1 + profitMargin / 100)).toFixed(2)}
+                        ${finalTotalCost.toFixed(2)}
                       </span>
                     </div>
                   </div>
-
-                  <button
-                    onClick={onGeneratePDF}
-                    className="w-full mt-4 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-lg font-medium"
-                  >
-                    Generate PDF Estimate
-                  </button>
                 </div>
               </div>
             </div>
