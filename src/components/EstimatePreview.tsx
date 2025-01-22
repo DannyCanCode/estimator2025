@@ -16,6 +16,7 @@ type LengthMeasurementKey = keyof NonNullable<RoofMeasurements['length_measureme
 
 export function EstimatePreview({ measurements, pricing, additionalMaterials, underlaymentType, onGeneratePDF }: EstimatePreviewProps) {
   const [profitMargin, setProfitMargin] = useState(0);
+  const [wastePercentage, setWastePercentage] = useState(12); // Default 12% waste
   const [selectedPriceTier, setSelectedPriceTier] = useState('standard');
   const [shinglesMarkup, setShinglesMarkup] = useState(0);
   const [underlaymentMarkup, setUnderlaymentMarkup] = useState(0);
@@ -81,7 +82,8 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
   };
 
   // Calculate material quantities
-  const totalSquares = measurements.total_squares || (measurements.total_area / 100);
+  const baseSquares = measurements.total_squares || (measurements.total_area / 100);
+  const totalSquares = baseSquares * (1 + wastePercentage / 100);
   const ridgeLength = measurements.length_measurements?.ridges?.length || 0;
   const valleyLength = measurements.length_measurements?.valleys?.length || 0;
   const eaveLength = measurements.eaves || 0;
@@ -215,8 +217,6 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
   console.log('Measurements Object:', measurements);
   console.log('Areas per Pitch:', measurements?.areas_per_pitch);
 
-  const wastePercentage = Math.max(measurements.suggested_waste_percentage || 12, 12);
-
   // Calculate base profits (difference between retail and our cost)
   const materialBaseProfit = 0;  // Base profit starts at 0 since we're using manufacturer costs
   const laborBaseProfit = 0;  // Base profit starts at 0 since we're using manufacturer costs
@@ -243,6 +243,34 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
       </CardHeader>
       <CardContent>
           <div className="space-y-8">
+            {/* Waste Percentage Input */}
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-base font-semibold text-blue-900">Suggested Waste Percentage</h3>
+                  <p className="text-sm text-blue-700">Adjust the waste percentage to account for material overage</p>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="number"
+                    value={wastePercentage}
+                    onChange={(e) => setWastePercentage(Number(e.target.value))}
+                    min="0"
+                    max="100"
+                    className="w-20 px-2 py-1 text-lg font-semibold text-blue-900 bg-white border border-blue-200 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    aria-label="Waste percentage"
+                    title="Enter waste percentage"
+                  />
+                  <span className="text-lg font-semibold text-blue-900">%</span>
+                </div>
+              </div>
+              <div className="mt-2 flex justify-between text-sm text-blue-700">
+                <span>Base Squares: {baseSquares.toFixed(2)}</span>
+                <span>→</span>
+                <span>Total with Waste: {totalSquares.toFixed(2)}</span>
+              </div>
+            </div>
+
             {/* Extracted Measurements Table */}
             <div>
               <div 
