@@ -53,10 +53,19 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
   const [isoBoardSelected, setIsoBoardSelected] = useState(false);
   const [isoBoardQuantity, setIsoBoardQuantity] = useState(0);
   
+  // Add new state for Base & Cap Install SA
+  const [baseCapInstallSelected, setBaseCapInstallSelected] = useState(false);
+  const [baseCapInstallQuantity, setBaseCapInstallQuantity] = useState(0);
+  
   // Add price constants for ISO Board
   const isoBoardRetailPrice = 54.50;
   const isoBoardOurCost = 54.50;
   const isoBoardCost = isoBoardSelected ? isoBoardQuantity * isoBoardRetailPrice : 0;
+  
+  // Add price constants for Base & Cap Install SA
+  const baseCapInstallRetailPrice = 109.00;
+  const baseCapInstallOurCost = 109.00;
+  const baseCapInstallCost = baseCapInstallSelected ? baseCapInstallQuantity * baseCapInstallRetailPrice : 0;
   
   // Add state for collapsible sections
   const [isMeasurementsOpen, setIsMeasurementsOpen] = useState(true);
@@ -205,7 +214,7 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
     coilNailsCost + smallCoilNailsCost + plasticCapNailsCost + geocelSealantCost + karnakTarCost + ridgeVentCost +
     offRidgeVentCost + gooseneck4Cost + gooseneck10Cost + leadFlashing15Cost + leadFlashing2Cost + leadFlashing3Cost +
     bulletBoot15Cost + bulletBoot2Cost + bulletBoot3Cost + bulletBoot4Cost + zipSealCost + libertyBaseSheetCost + libertyCapSheetCost +
-    isoBoardCost;
+    isoBoardCost + baseCapInstallCost;
 
   // Calculate labor based on pitch
   const laborMultiplier = pitch <= 7 ? 1 : pitch <= 9 ? 1.2 : pitch <= 12 ? 1.5 : 2;
@@ -1097,6 +1106,42 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
                         <td className="px-4 py-3 text-sm text-right font-medium">${isoBoardCost.toFixed(2)}</td>
                       </tr>
 
+                      {/* Base & Cap Install SA option */}
+                      <tr>
+                        <td className="px-4 py-3 text-sm">
+                          <div className="flex items-center">
+                            <input
+                              type="checkbox"
+                              checked={baseCapInstallSelected}
+                              onChange={(e) => {
+                                setBaseCapInstallSelected(e.target.checked);
+                                if (e.target.checked && !baseCapInstallQuantity) {
+                                  setBaseCapInstallQuantity(1);
+                                }
+                              }}
+                              className="mr-2 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                              aria-label="Select Base & Cap Install SA"
+                              title="Include Base & Cap Install SA in estimate"
+                            />
+                            <span>Base & Cap Install SA</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-sm">
+                          {baseCapInstallSelected ? (
+                            <input
+                              type="number"
+                              value={baseCapInstallQuantity}
+                              onChange={(e) => setBaseCapInstallQuantity(Number(e.target.value))}
+                              className="ml-2 w-16 text-sm border rounded px-1"
+                              aria-label="Base & Cap Install quantity"
+                              title="Enter quantity needed for Base & Cap Install"
+                            />
+                          ) : '-'} EA
+                        </td>
+                        <td className="px-4 py-3 text-sm">${baseCapInstallRetailPrice.toFixed(2)}/EA</td>
+                        <td className="px-4 py-3 text-sm text-right font-medium">${baseCapInstallCost.toFixed(2)}</td>
+                      </tr>
+
                       <tr className="bg-gray-50">
                         <td colSpan={3} className="px-4 py-3 text-sm font-semibold">Total Material Cost</td>
                         <td className="px-4 py-3 text-sm text-right font-semibold">
@@ -1528,6 +1573,22 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
                                   {profitMargin > 0 && (
                                     <span className="text-green-600 ml-2">
                                       (+${(isoBoardCost * profitMargin / 100).toFixed(2)})
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                            {baseCapInstallSelected && (
+                              <div>
+                                <div className="flex justify-between font-medium">
+                                  <span>Base & Cap Install SA</span>
+                                  <span>${(baseCapInstallCost * (1 + profitMargin / 100)).toFixed(2)}</span>
+                                </div>
+                                <div className="text-gray-500 text-[11px] pl-2">
+                                  Base Cost: ${baseCapInstallCost.toFixed(2)} ($109.00/EA × {baseCapInstallQuantity} EA)
+                                  {profitMargin > 0 && (
+                                    <span className="text-green-600 ml-2">
+                                      (+${(baseCapInstallCost * profitMargin / 100).toFixed(2)})
                                     </span>
                                   )}
                                 </div>
