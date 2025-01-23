@@ -47,7 +47,33 @@ export function extractMeasurements(text: string): ExtractionResult {
         } catch (e) {
           debugInfo.waste_table_error = e.message;
         }
-      } else if (['ridges', 'hips', 'valleys', 'rakes', 'eaves'].includes(key)) {
+      } else if (['ridges', 'hips'].includes(key)) {
+        // Try the new page 10 format first (includes both length and count)
+        const page10Match = tryPatterns([patternList[0]], text);
+        if (page10Match) {
+          measurements[key] = {
+            length: parseFloat(page10Match[1].replace(',', '')),
+            count: parseInt(page10Match[2])
+          };
+        } else {
+          // Fall back to separate length and count patterns
+          const lengthMatch = tryPatterns([patternList[1]], text);
+          const countMatch = tryPatterns([patternList[2]], text);
+          measurements[key] = {
+            length: lengthMatch ? parseFloat(lengthMatch[1].replace(',', '')) : 0,
+            count: countMatch ? parseInt(countMatch[1]) : 0
+          };
+        }
+      } else if (key === 'combined_ridges_hips') {
+        // Only use combined total if individual measurements weren't found
+        if (!measurements.ridges?.length && !measurements.hips?.length) {
+          const totalLength = parseFloat(match[1].replace(',', ''));
+          // Store in both ridges and hips for backward compatibility
+          measurements.ridges = { length: totalLength, count: 0 };
+          measurements.hips = { length: 0, count: 0 };
+          console.log('Using combined ridges/hips measurement:', totalLength);
+        }
+      } else if (['valleys', 'rakes', 'eaves'].includes(key)) {
         const lengthMatch = tryPatterns([patternList[0]], text);
         const countMatch = tryPatterns([patternList[1]], text);
         measurements[key] = {
@@ -56,7 +82,7 @@ export function extractMeasurements(text: string): ExtractionResult {
         };
       } else {
         const value = match[1].replace(',', '');
-        measurements[key] = value.includes('.') || !isNaN(value) ? parseFloat(value) : value;
+        measurements[key] = !isNaN(parseFloat(value)) ? parseFloat(value) : value;
       }
     }
   }

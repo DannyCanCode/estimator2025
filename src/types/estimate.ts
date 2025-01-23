@@ -216,8 +216,15 @@ export interface PricingConfig {
   labor: LaborPricing;
 }
 
+export interface EstimateItem {
+  name: string;
+  quantity: number;
+  unit: string;
+  price: number;
+}
+
 export interface Estimate {
-  id: string;
+  id?: string;
   customerName: string;
   address: string;
   date: string;
@@ -225,4 +232,14 @@ export interface Estimate {
   measurements: RoofMeasurements;
   totalCost: number;
   profitMargin: number;
+  selectedPriceTier: 'standard' | 'economy' | 'premium' | 'custom';
+  materialCosts: {
+    base: number;
+    withProfit: number;
+  };
+  laborCosts: {
+    base: number;
+    withProfit: number;
+  };
+  items: EstimateItem[];
 } 

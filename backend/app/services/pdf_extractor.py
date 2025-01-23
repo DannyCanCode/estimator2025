@@ -15,11 +15,11 @@ class PDFExtractor:
         self.patterns: Dict[str, re.Pattern] = {
             'total_area': re.compile(r'Total\s+Roof\s+Area\s*=\s*(\d+,?\d*)\s*sq\s*ft', re.IGNORECASE),
             'predominant_pitch': re.compile(r'Predominant\s+Pitch\s*=\s*(\d+/\d+)', re.IGNORECASE),
-            'ridges': re.compile(r'(?:Total\s+)?Ridges(?:/Hips)?\s*=\s*(\d+)\s*ft', re.IGNORECASE),
+            'ridges': re.compile(r'(?:Total\s+)?Ridges\s*=\s*(\d+)\s*ft\s*\(\d+\s*Ridges?\)', re.IGNORECASE),
             'valleys': re.compile(r'(?:Total\s+)?Valleys\s*=\s*(\d+)\s*ft', re.IGNORECASE),
             'eaves': re.compile(r'(?:Total\s+)?Eaves(?:/Starter)?[‡†]?\s*=\s*(\d+)\s*ft', re.IGNORECASE),
             'rakes': re.compile(r'(?:Total\s+)?Rakes[†]?\s*=\s*(\d+)\s*ft', re.IGNORECASE),
-            'hips': re.compile(r'(?:Total\s+)?Hips\s*=\s*(\d+)\s*ft', re.IGNORECASE),
+            'hips': re.compile(r'(?:Total\s+)?Hips\s*=\s*(\d+)\s*ft\s*\(\d+\s*Hips?\)\.?', re.IGNORECASE),
             'flashing': re.compile(r'(?:Total\s+)?Flashing\s*=\s*(\d+)\s*ft', re.IGNORECASE),
             'step_flashing': re.compile(r'(?:Total\s+)?Step\s+flashing\s*=\s*(\d+)\s*ft', re.IGNORECASE),
             'penetrations_area': re.compile(r'Total\s+Penetrations\s+Area\s*=\s*(\d+)\s*sq\s*ft', re.IGNORECASE),
@@ -178,6 +178,37 @@ class PDFExtractor:
         
         return text
 
+    def extract_ridges_and_hips(self, text: str) -> tuple[float, float]:
+        """Extract ridges and hips lengths from text, handling combined measurements."""
+        # Try to find separate ridge and hip measurements in the full text first
+        ridges = self.extract_ridges(text)
+        hips = self.extract_hips(text)
+        
+        # If we found both individual measurements, use them
+        if ridges > 0 and hips > 0:
+            logger.debug(f"Found individual measurements - Ridges: {ridges}, Hips: {hips}")
+            return ridges, hips
+            
+        # If we didn't find both, look for combined measurement
+        combined_pattern = re.compile(r'Total\s+Ridges/Hips\s*=\s*(\d+)\s*ft', re.IGNORECASE)
+        combined_match = combined_pattern.search(text)
+        if combined_match:
+            total = float(combined_match.group(1))
+            logger.debug(f"Found combined measurement - Total: {total}")
+            # If we found one measurement, assume it's that portion of the total
+            if ridges > 0:
+                logger.debug(f"Using ridges {ridges} and calculating hips as {total - ridges}")
+                return ridges, total - ridges
+            if hips > 0:
+                logger.debug(f"Using hips {hips} and calculating ridges as {total - hips}")
+                return total - hips, hips
+            # If we found neither, assume equal split (this is a fallback)
+            logger.debug(f"No individual measurements found, splitting total {total} equally")
+            return total / 2, total / 2
+        
+        logger.debug(f"No measurements found, returning ridges: {ridges}, hips: {hips}")
+        return ridges, hips
+
     def extract_measurements(self, pdf_content: bytes) -> Dict[str, Any]:
         """Extract all measurements from the PDF content bytes."""
         text = self.extract_text(pdf_content)
@@ -188,6 +219,9 @@ class PDFExtractor:
             areas_per_pitch = self.extract_areas_per_pitch_fallback(text)
             logger.info(f"Extracted areas per pitch: {areas_per_pitch}")
             
+            # Extract ridges and hips from full text first
+            ridges, hips = self.extract_ridges_and_hips(text)
+            
             # Find Report Summary section
             summary_match = re.search(r'Report Summary.*?(?=\n\s*\n|\Z)', text, re.DOTALL)
             if summary_match:
@@ -197,9 +231,17 @@ class PDFExtractor:
                 summary_text = text
                 logger.warning("No Report Summary section found, using full text")
             
+            # If we didn't find both measurements in full text, try summary
+            if ridges == 0 or hips == 0:
+                ridges, hips = self.extract_ridges_and_hips(summary_text)
+            
             # Extract other measurements
-            matches_found = {}
-            for key in ['total_area', 'predominant_pitch', 'ridges', 'hips', 'valleys', 'rakes', 'eaves', 'flashing', 'step_flashing']:
+            matches_found = {
+                'ridges': ridges,
+                'hips': hips
+            }
+            
+            for key in ['total_area', 'predominant_pitch', 'valleys', 'rakes', 'eaves', 'flashing', 'step_flashing']:
                 value = getattr(self, f'extract_{key}')(summary_text)
                 matches_found[key] = value
                 logger.debug(f"Extracted {key}: {value}")

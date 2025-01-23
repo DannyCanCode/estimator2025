@@ -19,12 +19,17 @@ export const measurementPatterns = {
     /Waste Table[\s\S]*?(\d+(?:\s*\n\s*\d+)*)\s*%[\s\S]*?([\d,.]+(?:\s*\n\s*[\d,.]+)*)\s*sq\s*ft/i
   ],
   ridges: [
+    /Ridges\s*=\s*([\d,]+)\s*ft\s*\((\d+)\s*Ridges?\)/i,
     /Ridge Length[^=\n]*=\s*([\d,]+)\s*ft/i,
     /Ridge Count[^=\n]*=\s*(\d+)/i
   ],
   hips: [
+    /Hips\s*=\s*([\d,]+)\s*ft\s*\((\d+)\s*Hips?\)/i,
     /Hip Length[^=\n]*=\s*([\d,]+)\s*ft/i,
     /Hip Count[^=\n]*=\s*(\d+)/i
+  ],
+  combined_ridges_hips: [
+    /Total Ridges\/Hips\s*=\s*([\d,]+)\s*ft/i
   ],
   valleys: [
     /Valley Length[^=\n]*=\s*([\d,]+)\s*ft/i,

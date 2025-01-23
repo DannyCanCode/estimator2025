@@ -1,3 +1,5 @@
+import { RoofMeasurements } from './estimate';
+
 export interface Report {
   id: string;
   file_path: string;
@@ -12,25 +14,32 @@ export interface Report {
 
 export interface Estimate {
   id: string;
-  customer_name: string;
-  amount: number;
-  status: string;
-  date: string;
-  roofing_type: string;
-  address: string | null;
-  report_id: string | null;
   created_at: string;
   updated_at: string;
+  customer_name: string;
+  address: string;
+  total_cost: number;
+  profit_margin: number;
+  status: 'pending' | 'approved' | 'sent';
+  selected_price_tier: 'standard' | 'economy' | 'premium' | 'custom';
+  measurements: RoofMeasurements;
+  material_costs: {
+    base: number;
+    withProfit: number;
+  };
+  labor_costs: {
+    base: number;
+    withProfit: number;
+  };
 }
 
 export interface EstimateItem {
   id: string;
-  estimate_id: string;
-  description: string;
-  quantity: number;
-  unit: string;
-  unit_price: number;
-  total: number;
   created_at: string;
   updated_at: string;
+  estimate_id: string;
+  name: string;
+  quantity: number;
+  unit: string;
+  price: number;
 }
