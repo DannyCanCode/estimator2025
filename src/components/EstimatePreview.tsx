@@ -135,21 +135,21 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
     // Round up to the nearest whole number
     const roundedSquares = Math.ceil(validSquares);
 
-    console.log('Total Area (sq ft):', measurements.total_area);
-    console.log('Total Squares (before low pitch subtraction):', totalSquares);
-    console.log('Low pitch area (1/12 and 2/12) (sq ft):', lowPitchArea);
-    console.log('Low pitch squares:', lowPitchSquares);
-    console.log('Valid squares for shingles (before rounding):', validSquares);
-    console.log('Final squares (rounded up):', roundedSquares);
+    console.log('Total Area (sq ft):', measurements.total_area.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }));
+    console.log('Total Squares (before low pitch subtraction):', totalSquares.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+    console.log('Low pitch area (1/12 and 2/12) (sq ft):', lowPitchArea.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }));
+    console.log('Low pitch squares:', lowPitchSquares.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+    console.log('Valid squares for shingles (before rounding):', validSquares.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+    console.log('Final squares (rounded up):', roundedSquares.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }));
 
     return roundedSquares;
   };
 
   // Get base squares from the calculation
-  const baseSquares = calculateValidSquares();
+  const baseSquares = Math.ceil(calculateValidSquares());
   
-  // Calculate total squares with waste
-  const totalSquares = baseSquares * (1 + wastePercentage / 100);
+  // Calculate total squares with waste and round up
+  const totalSquares = Math.ceil(baseSquares * (1 + wastePercentage / 100));
 
   const ridgeLength = measurements.length_measurements?.ridges?.length || 0;
   const valleyLength = measurements.length_measurements?.valleys?.length || 0;
@@ -169,8 +169,12 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
   // Calculate quantities and base prices
   const shinglesBasePrice = 121.68;  // Manufacturer cost per square
   const shinglesWasteFactor = 1.12;  // Fixed 12% waste for shingles
-  const shinglesQuantityNeeded = totalSquares * shinglesWasteFactor;  // Apply 12% waste to shingles
+  const shinglesQuantityNeeded = Math.ceil(totalSquares * shinglesWasteFactor);  // Apply 12% waste to shingles and round up to highest whole number
   const shinglesCost = shinglesQuantityNeeded * shinglesBasePrice;  // Calculate cost with waste
+
+  // Format numbers with commas and proper decimals
+  const formatCurrency = (amount: number) => amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const formatQuantity = (amount: number) => amount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 
   const underlaymentRollsNeeded = Math.ceil(totalSquares / 1.6);  // 1 roll covers 1.6 squares
   const underlaymentManufacturerPrice = 94.00;  // Manufacturer cost per roll
@@ -362,9 +366,9 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
                 </div>
               </div>
               <div className="mt-2 flex justify-between text-sm text-blue-700">
-                <span>Base Squares: {baseSquares.toFixed(2)}</span>
+                <span>Base Squares: {formatQuantity(Math.ceil(baseSquares))}</span>
                 <span>→</span>
-                <span>Total with Waste: {totalSquares.toFixed(2)}</span>
+                <span>Total with Waste: {formatQuantity(Math.ceil(totalSquares))}</span>
               </div>
             </div>
 
@@ -586,19 +590,10 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
                     <tbody className="divide-y divide-gray-200">
                       <tr>
                         <td className="px-4 py-3 text-sm">{selectedShingle}</td>
-                        <td className="px-4 py-3 text-sm">{shinglesQuantityNeeded.toFixed(2)} SQ</td>
-                        <td className="px-4 py-3 text-sm">${shinglesBasePrice.toFixed(2)}/SQ</td>
+                        <td className="px-4 py-3 text-sm">{formatQuantity(shinglesQuantityNeeded)} SQ</td>
+                        <td className="px-4 py-3 text-sm">${formatCurrency(shinglesBasePrice)}/SQ</td>
                         <td className="px-4 py-3 text-sm text-right font-medium">
-                          ${shinglesCost.toFixed(2)}
-                          <input
-                            type="number"
-                            value={shinglesMarkup}
-                            onChange={(e) => setShinglesMarkup(Number(e.target.value))}
-                            className="ml-1 w-12 text-xs text-gray-500 bg-transparent border-b border-gray-300 focus:outline-none focus:border-blue-500"
-                            aria-label="Shingles markup percentage"
-                            title="Adjust markup percentage for shingles"
-                          />
-                          <span className="text-xs text-gray-500">%</span>
+                          ${formatCurrency(shinglesCost)}
                         </td>
                       </tr>
                       <tr>
@@ -606,35 +601,26 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
                         <td className="px-4 py-3 text-sm">{underlaymentRollsNeeded} EA</td>
                         <td className="px-4 py-3 text-sm">${underlaymentManufacturerPrice.toFixed(2)}/EA</td>
                         <td className="px-4 py-3 text-sm text-right font-medium">
-                          ${underlaymentCost.toFixed(2)}
-                          <input
-                            type="number"
-                            value={underlaymentMarkup}
-                            onChange={(e) => setUnderlaymentMarkup(Number(e.target.value))}
-                            className="ml-1 w-12 text-xs text-gray-500 bg-transparent border-b border-gray-300 focus:outline-none focus:border-blue-500"
-                            aria-label="Underlayment markup percentage"
-                            title="Adjust markup percentage for underlayment"
-                          />
-                          <span className="text-xs text-gray-500">%</span>
+                          ${formatCurrency(underlaymentCost)}
                         </td>
                       </tr>
                       <tr>
                         <td className="px-4 py-3 text-sm">GAF ProStart Starter Shingle Strip (120')</td>
-                        <td className="px-4 py-3 text-sm">{Math.ceil((rakeLength + eaveLength) / 110).toFixed(2)} BD</td>
-                        <td className="px-4 py-3 text-sm">$61.20/BD</td>
-                        <td className="px-4 py-3 text-sm text-right font-medium">${(Math.ceil((rakeLength + eaveLength) / 110) * 61.20).toFixed(2)}</td>
+                        <td className="px-4 py-3 text-sm">{formatQuantity(Math.ceil((rakeLength + eaveLength) / 110))} BD</td>
+                        <td className="px-4 py-3 text-sm">${formatCurrency(61.20)}/BD</td>
+                        <td className="px-4 py-3 text-sm text-right font-medium">${formatCurrency(Math.ceil((rakeLength + eaveLength) / 110) * 61.20)}</td>
                       </tr>
                       <tr>
                         <td className="px-4 py-3 text-sm">GAF Seal-A-Ridge (25')</td>
-                        <td className="px-4 py-3 text-sm">{Math.ceil(((measurements.ridges ?? 0) + (measurements.hips ?? 0)) / 20).toFixed(2)} BD</td>
-                        <td className="px-4 py-3 text-sm">$65.00/BD</td>
-                        <td className="px-4 py-3 text-sm text-right font-medium">${(Math.ceil(((measurements.ridges ?? 0) + (measurements.hips ?? 0)) / 20) * 65.00).toFixed(2)}</td>
+                        <td className="px-4 py-3 text-sm">{formatQuantity(Math.ceil(((measurements.ridges ?? 0) + (measurements.hips ?? 0)) / 20))} BD</td>
+                        <td className="px-4 py-3 text-sm">${formatCurrency(65.00)}/BD</td>
+                        <td className="px-4 py-3 text-sm text-right font-medium">${formatCurrency(Math.ceil(((measurements.ridges ?? 0) + (measurements.hips ?? 0)) / 20) * 65.00)}</td>
                       </tr>
                       <tr>
                         <td className="px-4 py-3 text-sm">ACM Galvalume Drip Edge - 26GA - F2.5 (10')</td>
-                        <td className="px-4 py-3 text-sm">{acmGalvalumeDripEdgeQuantity} PC</td>
-                        <td className="px-4 py-3 text-sm">$6.00/PC</td>
-                        <td className="px-4 py-3 text-sm text-right font-medium">${(acmGalvalumeDripEdgeQuantity * 6.00).toFixed(2)}</td>
+                        <td className="px-4 py-3 text-sm">{formatQuantity(acmGalvalumeDripEdgeQuantity)} PC</td>
+                        <td className="px-4 py-3 text-sm">${formatCurrency(6.00)}/PC</td>
+                        <td className="px-4 py-3 text-sm text-right font-medium">${formatCurrency(acmGalvalumeDripEdgeCost)}</td>
                       </tr>
                       <tr>
                         <td className="px-4 py-3 text-sm">Coil Nails - 2 3/8" (4500 Cnt)</td>
@@ -1235,7 +1221,7 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
                       <tr className="bg-gray-50">
                         <td colSpan={3} className="px-4 py-3 text-sm font-semibold">Total Material Cost</td>
                         <td className="px-4 py-3 text-sm text-right font-semibold">
-                          ${totalMaterialCost.toFixed(2)}
+                          ${formatCurrency(totalMaterialCost)}
                         </td>
                       </tr>
                     </tbody>
@@ -1421,13 +1407,13 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
                           <div className="flex justify-between items-center">
                             <span className="text-sm font-medium text-gray-600">Total Material Cost (Base)</span>
                             <span className="text-lg font-semibold">
-                              ${totalMaterialCost.toFixed(2)}
+                              ${formatCurrency(totalMaterialCost)}
                             </span>
                           </div>
                           <div className="flex justify-between items-center mt-2">
                             <span className="text-sm text-gray-500">Additional Material Profit</span>
                             <span className="text-sm font-medium text-green-600">
-                              ${adjustedMaterialProfit.toFixed(2)}
+                              ${formatCurrency(adjustedMaterialProfit)}
                             </span>
                           </div>
                           <div className="mt-4 text-xs space-y-2">
@@ -1778,7 +1764,7 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
                         <span className="text-sm text-blue-700 ml-2">({selectedPriceTier} pricing)</span>
                       </div>
                       <span className="text-3xl font-bold text-blue-900">
-                        ${finalTotalCost.toFixed(2)}
+                        ${formatCurrency(finalTotalCost)}
                       </span>
                     </div>
                   </div>
