@@ -3,6 +3,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { RoofMeasurements, PricingConfig, AdditionalMaterials, UnderlaymentType } from '@/types/estimate';
 import { Slider } from '@/components/ui/slider';
 import { ChevronDown, ChevronUp } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { toast } from 'react-toastify';
+import { estimateService } from '@/services/estimateService';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 interface EstimatePreviewProps {
   measurements: RoofMeasurements;
@@ -14,10 +19,12 @@ interface EstimatePreviewProps {
 
 type LengthMeasurementKey = keyof NonNullable<RoofMeasurements['length_measurements']>;
 
+type PriceTier = 'standard' | 'economy' | 'premium' | 'custom';
+
 export function EstimatePreview({ measurements, pricing, additionalMaterials, underlaymentType, onGeneratePDF }: EstimatePreviewProps) {
   const [profitMargin, setProfitMargin] = useState(0);
   const [wastePercentage, setWastePercentage] = useState(12); // Default 12% waste
-  const [selectedPriceTier, setSelectedPriceTier] = useState('standard');
+  const [selectedPriceTier, setSelectedPriceTier] = useState<PriceTier>('standard');
   const [shinglesMarkup, setShinglesMarkup] = useState(0);
   const [underlaymentMarkup, setUnderlaymentMarkup] = useState(0);
   const [acmMarkup, setAcmMarkup] = useState(0);
@@ -91,6 +98,9 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
   const libertyCapSheetOurCost = 115.08;  // Updated from 115.08
   const libertyCapSheetCost = isLibertyCapSheetSelected ? libertyCapSheetQuantity * libertyCapSheetRetailPrice : 0;
 
+  const [customerName, setCustomerName] = useState('');
+  const [customerAddress, setCustomerAddress] = useState('');
+
   const formatLengthMeasurement = (key: LengthMeasurementKey) => {
     const measurement = measurements.length_measurements?.[key];
     if (measurement) {
@@ -100,8 +110,47 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
   };
 
   // Calculate material quantities
-  const baseSquares = measurements.total_squares || (measurements.total_area / 100);
+  const calculateValidSquares = () => {
+    // Always calculate squares from total area
+    const totalSquares = measurements.total_area / 100;
+
+    if (!measurements.areas_per_pitch || !measurements.areas_per_pitch.length) {
+      return Math.ceil(totalSquares);
+    }
+
+    let lowPitchArea = 0;
+
+    // Calculate total low pitch area to subtract
+    measurements.areas_per_pitch.forEach((pitchData) => {
+      const pitchValue = parseInt(pitchData.pitch.split('/')[0]);
+      if (pitchValue <= 2) {
+        lowPitchArea += pitchData.area;
+      }
+    });
+
+    // Convert low pitch area to squares and subtract from total squares
+    const lowPitchSquares = lowPitchArea / 100;
+    const validSquares = totalSquares - lowPitchSquares;
+
+    // Round up to the nearest whole number
+    const roundedSquares = Math.ceil(validSquares);
+
+    console.log('Total Area (sq ft):', measurements.total_area);
+    console.log('Total Squares (before low pitch subtraction):', totalSquares);
+    console.log('Low pitch area (1/12 and 2/12) (sq ft):', lowPitchArea);
+    console.log('Low pitch squares:', lowPitchSquares);
+    console.log('Valid squares for shingles (before rounding):', validSquares);
+    console.log('Final squares (rounded up):', roundedSquares);
+
+    return roundedSquares;
+  };
+
+  // Get base squares from the calculation
+  const baseSquares = calculateValidSquares();
+  
+  // Calculate total squares with waste
   const totalSquares = baseSquares * (1 + wastePercentage / 100);
+
   const ridgeLength = measurements.length_measurements?.ridges?.length || 0;
   const valleyLength = measurements.length_measurements?.valleys?.length || 0;
   const eaveLength = measurements.eaves || 0;
@@ -119,6 +168,10 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
 
   // Calculate quantities and base prices
   const shinglesBasePrice = 121.68;  // Manufacturer cost per square
+  const shinglesWasteFactor = 1.12;  // Fixed 12% waste for shingles
+  const shinglesQuantityNeeded = totalSquares * shinglesWasteFactor;  // Apply 12% waste to shingles
+  const shinglesCost = shinglesQuantityNeeded * shinglesBasePrice;  // Calculate cost with waste
+
   const underlaymentRollsNeeded = Math.ceil(totalSquares / 1.6);  // 1 roll covers 1.6 squares
   const underlaymentManufacturerPrice = 94.00;  // Manufacturer cost per roll
   const ridgeCapsCost = ridgeLength * pricing.materials.ridge_caps.price;
@@ -151,7 +204,6 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
   const permitsCost = permitsUnitsNeeded * permitsManufacturerPrice;
 
   // Calculate costs with markups
-  const shinglesCost = totalSquares * shinglesBasePrice;  // Using manufacturer cost of $121.68/SQ
   const underlaymentCost = underlaymentRollsNeeded * underlaymentManufacturerPrice * (1 + underlaymentMarkup / 100);  // Using manufacturer cost for customer
   const acmGalvalumeDripEdgeBasePrice = 6.00;  // Manufacturer's price per piece
   const acmGalvalumeDripEdgeQuantity = Math.ceil((rakeLength + eaveLength) / 9);
@@ -253,15 +305,41 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
 
   const selectedShingle = pricing.materials.shingles.name;
 
+  // Add this section before the final cost summary
+  const CustomerInformation = () => (
+    <div className="space-y-4 mb-8">
+      <h3 className="text-base font-semibold">Customer Information</h3>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="customerName">Customer Name</Label>
+          <Input
+            id="customerName"
+            value={customerName}
+            onChange={(e) => setCustomerName(e.target.value)}
+            placeholder="Enter customer name"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="customerAddress">Customer Address</Label>
+          <Input
+            id="customerAddress"
+            value={customerAddress}
+            onChange={(e) => setCustomerAddress(e.target.value)}
+            placeholder="Enter customer address"
+          />
+        </div>
+      </div>
+    </div>
+  );
+
   return (
-    <div className="space-y-4">
-      <Card className="w-full">
-      <CardHeader>
-        <CardTitle>Estimate Preview</CardTitle>
-          <p className="text-sm text-gray-500">Review extracted measurements, material costs, and labor charges for your roofing project.</p>
-      </CardHeader>
-      <CardContent>
+    <div className="w-full max-w-4xl mx-auto">
+      <Card>
+        <CardContent className="p-6">
           <div className="space-y-8">
+            {/* Add CustomerInformation component here */}
+            <CustomerInformation />
+            
             {/* Waste Percentage Input */}
             <div className="bg-blue-50 p-4 rounded-lg">
               <div className="flex items-center justify-between">
@@ -508,7 +586,7 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
                     <tbody className="divide-y divide-gray-200">
                       <tr>
                         <td className="px-4 py-3 text-sm">{selectedShingle}</td>
-                        <td className="px-4 py-3 text-sm">{totalSquares.toFixed(2)} SQ</td>
+                        <td className="px-4 py-3 text-sm">{shinglesQuantityNeeded.toFixed(2)} SQ</td>
                         <td className="px-4 py-3 text-sm">${shinglesBasePrice.toFixed(2)}/SQ</td>
                         <td className="px-4 py-3 text-sm text-right font-medium">
                           ${shinglesCost.toFixed(2)}
@@ -548,9 +626,9 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
                       </tr>
                       <tr>
                         <td className="px-4 py-3 text-sm">GAF Seal-A-Ridge (25')</td>
-                        <td className="px-4 py-3 text-sm">{(totalSquares / 3).toFixed(2)} BD</td>
+                        <td className="px-4 py-3 text-sm">{Math.ceil(((measurements.ridges ?? 0) + (measurements.hips ?? 0)) / 20).toFixed(2)} BD</td>
                         <td className="px-4 py-3 text-sm">$65.00/BD</td>
-                        <td className="px-4 py-3 text-sm text-right font-medium">${(totalSquares / 3 * 65.00).toFixed(2)}</td>
+                        <td className="px-4 py-3 text-sm text-right font-medium">${(Math.ceil(((measurements.ridges ?? 0) + (measurements.hips ?? 0)) / 20) * 65.00).toFixed(2)}</td>
                       </tr>
                       <tr>
                         <td className="px-4 py-3 text-sm">ACM Galvalume Drip Edge - 26GA - F2.5 (10')</td>
@@ -1018,24 +1096,30 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
                             <input
                               type="checkbox"
                               checked={isLibertyBaseSheetSelected}
-                              onChange={(e) => setIsLibertyBaseSheetSelected(e.target.checked)}
+                              onChange={(e) => {
+                                setIsLibertyBaseSheetSelected(e.target.checked);
+                                if (e.target.checked && !libertyBaseSheetQuantity) {
+                                  setLibertyBaseSheetQuantity(1);
+                                }
+                              }}
                               className="mr-2 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                               aria-label="Select GAF Liberty SBS SA Base Sheet"
+                              title="Include GAF Liberty Base Sheet in estimate"
                             />
                             <span>GAF Liberty SBS SA Base Sheet (2 sq)</span>
                           </div>
                         </td>
                         <td className="px-4 py-3 text-sm">
-                          <input
-                            type="number"
-                            min="1"
-                            value={libertyBaseSheetQuantity}
-                            onChange={(e) => setLibertyBaseSheetQuantity(Number(e.target.value))}
-                            disabled={!isLibertyBaseSheetSelected}
-                            className="w-16 rounded border-gray-300 text-sm"
-                            aria-label="GAF Liberty Base Sheet quantity"
-                          />
-                          RL
+                          {isLibertyBaseSheetSelected ? (
+                            <input
+                              type="number"
+                              value={libertyBaseSheetQuantity}
+                              onChange={(e) => setLibertyBaseSheetQuantity(Number(e.target.value))}
+                              className="ml-2 w-16 text-sm border rounded px-1"
+                              aria-label="Liberty Base Sheet quantity"
+                              title="Enter quantity of Liberty Base Sheets needed"
+                            />
+                          ) : '-'} RL
                         </td>
                         <td className="px-4 py-3 text-sm">${libertyBaseSheetRetailPrice.toFixed(2)}/RL</td>
                         <td className="px-4 py-3 text-sm text-right font-medium">${libertyBaseSheetCost.toFixed(2)}</td>
@@ -1047,24 +1131,30 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
                             <input
                               type="checkbox"
                               checked={isLibertyCapSheetSelected}
-                              onChange={(e) => setIsLibertyCapSheetSelected(e.target.checked)}
+                              onChange={(e) => {
+                                setIsLibertyCapSheetSelected(e.target.checked);
+                                if (e.target.checked && !libertyCapSheetQuantity) {
+                                  setLibertyCapSheetQuantity(1);
+                                }
+                              }}
                               className="mr-2 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                               aria-label="Select GAF Liberty SBS SA Cap Sheet"
+                              title="Include GAF Liberty Cap Sheet in estimate"
                             />
                             <span>GAF Liberty SBS SA Cap Sheet (1 sq)</span>
                           </div>
                         </td>
                         <td className="px-4 py-3 text-sm">
-                          <input
-                            type="number"
-                            min="1"
-                            value={libertyCapSheetQuantity}
-                            onChange={(e) => setLibertyCapSheetQuantity(Number(e.target.value))}
-                            disabled={!isLibertyCapSheetSelected}
-                            className="w-16 rounded border-gray-300 text-sm"
-                            aria-label="GAF Liberty Cap Sheet quantity"
-                          />
-                          RL
+                          {isLibertyCapSheetSelected ? (
+                            <input
+                              type="number"
+                              value={libertyCapSheetQuantity}
+                              onChange={(e) => setLibertyCapSheetQuantity(Number(e.target.value))}
+                              className="ml-2 w-16 text-sm border rounded px-1"
+                              aria-label="Liberty Cap Sheet quantity"
+                              title="Enter quantity of Liberty Cap Sheets needed"
+                            />
+                          ) : '-'} RL
                         </td>
                         <td className="px-4 py-3 text-sm">${libertyCapSheetRetailPrice.toFixed(2)}/RL</td>
                         <td className="px-4 py-3 text-sm text-right font-medium">${libertyCapSheetCost.toFixed(2)}</td>
@@ -1387,13 +1477,13 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
                             <div>
                               <div className="flex justify-between font-medium">
                                 <span>GAF Seal-A-Ridge</span>
-                                <span>${((totalSquares / 3 * 65.00) * (1 + profitMargin / 100)).toFixed(2)}</span>
+                                <span>${(Math.ceil(((measurements.ridges ?? 0) + (measurements.hips ?? 0)) / 20) * 65.00 * (1 + profitMargin / 100)).toFixed(2)}</span>
                               </div>
-                              <div className="text-gray-500 text-[11px] pl-2">
-                                Base Cost: ${(totalSquares / 3 * 65.00).toFixed(2)} ($65.00/BD × {(totalSquares / 3).toFixed(2)} BD)
+                              <div className="text-gray-500 text-[11px] pl-2" title="Base cost calculation for GAF Seal-A-Ridge">
+                                Base Cost: ${(Math.ceil(((measurements.ridges ?? 0) + (measurements.hips ?? 0)) / 20) * 65.00).toFixed(2)} ($65.00/BD × {Math.ceil(((measurements.ridges ?? 0) + (measurements.hips ?? 0)) / 20).toFixed(2)} BD)
                                 {profitMargin > 0 && (
                                   <span className="text-green-600 ml-2">
-                                    (+${((totalSquares / 3 * 65.00) * profitMargin / 100).toFixed(2)})
+                                    (+${(Math.ceil(((measurements.ridges ?? 0) + (measurements.hips ?? 0)) / 20) * 65.00 * profitMargin / 100).toFixed(2)})
                                   </span>
                                 )}
                               </div>
@@ -1720,6 +1810,205 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
                 </div>
               </div>
             )}
+
+            {/* Add before the final closing div */}
+            <div className="mt-8 flex justify-end space-x-4">
+              <Button
+                variant="outline"
+                onClick={async () => {
+                  // Validate customer information
+                  if (!customerName.trim() || !customerAddress.trim()) {
+                    toast.error('Please fill in customer information');
+                    return;
+                  }
+
+                  // Validate price tier selection
+                  if (!selectedPriceTier) {
+                    toast.error('Please select a pricing tier (Standard, Economy, Premium, or Custom)');
+                    return;
+                  }
+
+                  try {
+                    // Create the estimate data
+                    const estimate = {
+                      customerName: customerName.trim(),
+                      address: customerAddress.trim(),
+                      date: new Date().toISOString(),
+                      status: 'pending' as const,
+                      measurements,
+                      totalCost: finalTotalCost,
+                      profitMargin,
+                      selectedPriceTier: selectedPriceTier as PriceTier,
+                      materialCosts: {
+                        base: totalMaterialCost,
+                        withProfit: finalMaterialCost
+                      },
+                      laborCosts: {
+                        base: laborCost,
+                        withProfit: finalLaborCost
+                      },
+                      items: [
+                        {
+                          name: selectedShingle,
+                          quantity: totalSquares.toFixed(2),
+                          unit: 'SQ',
+                          price: shinglesBasePrice
+                        },
+                        {
+                          name: 'GAF ridge',
+                          quantity: (totalSquares / 3).toFixed(2),
+                          unit: 'BD',
+                          price: 65.00
+                        },
+                        {
+                          name: 'GAF Starter',
+                          quantity: (totalSquares / 3).toFixed(2),
+                          unit: 'BD',
+                          price: 61.20
+                        },
+                        {
+                          name: 'GAF Weatherwatch Ice & Water Shield (2sq)',
+                          quantity: underlaymentRollsNeeded,
+                          unit: 'EA',
+                          price: underlaymentManufacturerPrice
+                        },
+                        {
+                          name: 'GAF Liberty SBS SA Base Sheet (2 sq)',
+                          quantity: isLibertyBaseSheetSelected ? libertyBaseSheetQuantity : 0,
+                          unit: 'RL',
+                          price: libertyBaseSheetRetailPrice
+                        },
+                        {
+                          name: 'GAF Liberty SBS SA Cap Sheet (1 sq)',
+                          quantity: isLibertyCapSheetSelected ? libertyCapSheetQuantity : 0,
+                          unit: 'RL',
+                          price: libertyCapSheetRetailPrice
+                        },
+                        {
+                          name: 'ACM Galvalume Drip Edge - 26GA - F2.5 (10\')',
+                          quantity: acmGalvalumeDripEdgeQuantity,
+                          unit: 'PC',
+                          price: 6.00
+                        },
+                        {
+                          name: 'Coil Nails - 2 3/8" (4500 Cnt)',
+                          quantity: coilNailsBoxesNeeded,
+                          unit: 'BX',
+                          price: coilNailsManufacturerPrice
+                        },
+                        {
+                          name: 'Roofing Coil Nails - 1 1/4" (7200 Cnt)',
+                          quantity: smallCoilNailsBoxesNeeded,
+                          unit: 'BX',
+                          price: smallCoilNailsManufacturerPrice
+                        },
+                        {
+                          name: 'Plastic Cap Nails - 1" (3000 Cnt)',
+                          quantity: plasticCapNailsBoxesNeeded,
+                          unit: 'BX',
+                          price: plasticCapNailsManufacturerPrice
+                        },
+                        {
+                          name: 'Geocel 2300 Construction TriPolymer Sealant (10.3 oz)',
+                          quantity: geocelSealantUnitsNeeded,
+                          unit: 'EA',
+                          price: geocelSealantManufacturerPrice
+                        },
+                        {
+                          name: 'Karnak 19 Ultra Roof Tar - 5Gal',
+                          quantity: karnakTarUnitsNeeded,
+                          unit: 'EA',
+                          price: karnakTarManufacturerPrice
+                        },
+                        // Add selected add-ons
+                        ...(isRidgeVentSelected ? [{
+                          name: 'GAF Cobra Rigid Vent 3 Exhaust Ridge Vent w/ Nails - 11-1/2" (4\')',
+                          quantity: ridgeVentQuantity,
+                          unit: 'PC',
+                          price: ridgeVentRetailPrice
+                        }] : []),
+                        ...(offRidgeVentSelected ? [{
+                          name: 'TAMCO Galvanized Steel Off Ridge Vent (4\') - w/ Diverter',
+                          quantity: offRidgeVentQuantity,
+                          unit: 'PC',
+                          price: offRidgeVentRetailPrice
+                        }] : []),
+                        ...(gooseneck4Selected ? [{
+                          name: 'Galvanized Steel Gooseneck Exhaust Vent - 4"',
+                          quantity: gooseneck4Quantity,
+                          unit: 'EA',
+                          price: gooseneck4RetailPrice
+                        }] : []),
+                        ...(gooseneck10Selected ? [{
+                          name: 'Galvalume Gooseneck Exhaust Vent - 10"',
+                          quantity: gooseneck10Quantity,
+                          unit: 'EA',
+                          price: gooseneck10RetailPrice
+                        }] : []),
+                        // Labor section
+                        {
+                          name: 'Labor',
+                          quantity: 1,
+                          unit: '',
+                          price: laborCost
+                        },
+                        {
+                          name: '1/2"x4\'x8\' CDX Plywood - 4-Ply',
+                          quantity: cdxPlywoodQuantity,
+                          unit: 'BRD',
+                          price: cdxPlywoodManufacturerPrice
+                        },
+                        {
+                          name: 'Dumpster 12 yard',
+                          quantity: dumpsterUnitsNeeded,
+                          unit: 'EA',
+                          price: dumpsterManufacturerPrice
+                        },
+                        {
+                          name: 'Perform Required Permits and Inspections',
+                          quantity: permitsUnitsNeeded,
+                          unit: 'EA',
+                          price: permitsManufacturerPrice
+                        }
+                      ]
+                    };
+                    
+                    // Save the estimate and generate PDF
+                    await estimateService.saveEstimate(estimate);
+                    
+                    // Generate and download the PDF
+                    const blob = await estimateService.generatePDF(estimate);
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `estimate-${customerName.replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.pdf`;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                    
+                    toast.success('Estimate saved and PDF generated successfully!');
+                  } catch (error) {
+                    console.error('Error saving estimate:', error);
+                    toast.error('Failed to save estimate and generate PDF. Please try again.');
+                  }
+                }}
+                disabled={!selectedPriceTier}
+                aria-label="Save estimate"
+                title={!selectedPriceTier ? "Please select a pricing tier first" : "Save this estimate"}
+              >
+                Save Estimate
+              </Button>
+              <Button
+                variant="default"
+                onClick={onGeneratePDF}
+                disabled={!selectedPriceTier}
+                aria-label="Generate professional estimate PDF"
+                title={!selectedPriceTier ? "Please select a pricing tier first" : "Generate PDF estimate"}
+              >
+                Generate Professional Estimate
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
