@@ -620,9 +620,9 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
                       </tr>
                       <tr>
                         <td className="px-4 py-3 text-sm">GAF ProStart Starter Shingle Strip (120')</td>
-                        <td className="px-4 py-3 text-sm">{(totalSquares / 3).toFixed(2)} BD</td>
+                        <td className="px-4 py-3 text-sm">{Math.ceil((rakeLength + eaveLength) / 110).toFixed(2)} BD</td>
                         <td className="px-4 py-3 text-sm">$61.20/BD</td>
-                        <td className="px-4 py-3 text-sm text-right font-medium">${(totalSquares / 3 * 61.20).toFixed(2)}</td>
+                        <td className="px-4 py-3 text-sm text-right font-medium">${(Math.ceil((rakeLength + eaveLength) / 110) * 61.20).toFixed(2)}</td>
                       </tr>
                       <tr>
                         <td className="px-4 py-3 text-sm">GAF Seal-A-Ridge (25')</td>
@@ -1463,13 +1463,13 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
                             <div>
                               <div className="flex justify-between font-medium">
                                 <span>GAF ProStart Starter Shingle Strip</span>
-                                <span>${((totalSquares / 3 * 61.20) * (1 + profitMargin / 100)).toFixed(2)}</span>
+                                <span>${(Math.ceil((rakeLength + eaveLength) / 110) * 61.20 * (1 + profitMargin / 100)).toFixed(2)}</span>
                               </div>
                               <div className="text-gray-500 text-[11px] pl-2">
-                                Base Cost: ${(totalSquares / 3 * 61.20).toFixed(2)} ($61.20/BD × {(totalSquares / 3).toFixed(2)} BD)
+                                Base Cost: ${(Math.ceil((rakeLength + eaveLength) / 110) * 61.20).toFixed(2)} ($61.20/BD × {Math.ceil((rakeLength + eaveLength) / 110).toFixed(2)} BD)
                                 {profitMargin > 0 && (
                                   <span className="text-green-600 ml-2">
-                                    (+${((totalSquares / 3 * 61.20) * profitMargin / 100).toFixed(2)})
+                                    (+${(Math.ceil((rakeLength + eaveLength) / 110) * 61.20 * profitMargin / 100).toFixed(2)})
                                   </span>
                                 )}
                               </div>
