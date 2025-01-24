@@ -30,7 +30,7 @@ export const VALIDATION_RULES: Record<string, ValidationRule> = {
   valleysLength: { min: 0, max: 1000, required: false },
   eavesLength: { min: 0, max: 1000, required: false },
   wasteSquares: { min: 0, max: 1000, required: false },
-  suggestedWastePercentage: { min: 5, max: 20, required: false },
+  suggestedWastePercentage: { min: 12, max: 12, required: false },
   numberOfStories: { min: 1, max: 5, required: true }
 }
 
@@ -42,10 +42,8 @@ export const calculateWasteSquares = (
   rakeLength: number,
   eaveLength: number
 ): number => {
-  const baseWaste = 0.10; // 10% base waste
-  const complexityFactor = (ridgeLength + valleyLength * 2 + rakeLength + eaveLength) / 1000;
-  const additionalWaste = Math.min(0.05, complexityFactor * 0.01);
-  return totalSquares * (baseWaste + additionalWaste);
+  const wastePercentage = 12; // Fixed 12% waste for GAF Timberline HDZ SG Shingles
+  return totalSquares * (wastePercentage / 100);
 };
 
 // Measurement Interfaces
@@ -92,10 +90,15 @@ export interface RoofMeasurements {
   hips?: number;
   flashing?: number;
   step_flashing?: number;
+  pitch_breaks?: number;
+  chimneys?: number;
+  skylights?: number;
   penetrations?: number;
   penetrations_perimeter?: number;
   waste_percentage?: number;
   suggested_waste_percentage?: number;
+  longitude?: number;
+  latitude?: number;
   debug_info?: {
     extraction_method: string;
     error?: string;
@@ -229,10 +232,10 @@ export interface Estimate {
   address: string;
   date: string;
   status: 'pending' | 'approved' | 'sent';
-  measurements: RoofMeasurements;
   totalCost: number;
   profitMargin: number;
   selectedPriceTier: 'standard' | 'economy' | 'premium' | 'custom';
+  measurements: RoofMeasurements;
   materialCosts: {
     base: number;
     withProfit: number;

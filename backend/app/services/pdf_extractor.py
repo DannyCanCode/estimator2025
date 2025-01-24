@@ -24,7 +24,9 @@ class PDFExtractor:
             'step_flashing': re.compile(r'(?:Total\s+)?Step\s+flashing\s*=\s*(\d+)\s*ft', re.IGNORECASE),
             'penetrations_area': re.compile(r'Total\s+Penetrations\s+Area\s*=\s*(\d+)\s*sq\s*ft', re.IGNORECASE),
             'penetrations_perimeter': re.compile(r'Total\s+Penetrations\s+Perimeter\s*=\s*(\d+)\s*ft', re.IGNORECASE),
-            'suggested_waste': re.compile(r'(?P<waste_percentage>\d+)%\s*\n\s*(?P<area_sq_ft>\d+)\s*\n\s*(?P<suggested_squares>\d+\.\d+)', re.IGNORECASE | re.DOTALL)
+            'suggested_waste': re.compile(r'(?P<waste_percentage>\d+)%\s*\n\s*(?P<area_sq_ft>\d+)\s*\n\s*(?P<suggested_squares>\d+\.\d+)', re.IGNORECASE | re.DOTALL),
+            'longitude': re.compile(r'Longitude\s*=\s*(-?\d+\.\d+)', re.IGNORECASE),
+            'latitude': re.compile(r'Latitude\s*=\s*(-?\d+\.\d+)', re.IGNORECASE)
         }
 
     def find_measurement_with_count(self, text: str, key: str, length: float) -> Optional[int]:
@@ -250,6 +252,18 @@ class PDFExtractor:
                     value = getattr(self, f'extract_{key}')(text)
                     matches_found[key] = value
                     logger.debug(f"Retried {key} in full text: {value}")
+            
+            # Extract longitude and latitude from full text
+            longitude_match = self.patterns['longitude'].search(text)
+            latitude_match = self.patterns['latitude'].search(text)
+            
+            if longitude_match:
+                matches_found['longitude'] = float(longitude_match.group(1))
+                logger.debug(f"Extracted longitude: {matches_found['longitude']}")
+            
+            if latitude_match:
+                matches_found['latitude'] = float(latitude_match.group(1))
+                logger.debug(f"Extracted latitude: {matches_found['latitude']}")
             
             matches_found["waste_percentage"] = self.extract_waste_percentage(summary_text)
             matches_found["areas_per_pitch"] = areas_per_pitch

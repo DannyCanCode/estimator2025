@@ -5,7 +5,7 @@ export const calculateEstimateItems = (measurements: any) => {
 
   const totalArea = parseFloat(measurements.total_area.toString().replace(/,/g, ''));
   const pitch = measurements.predominant_pitch ? parseInt(measurements.predominant_pitch) : 4;
-  const wasteFactor = measurements.suggested_waste_percentage || 15;
+  const wasteFactor = 12; // Fixed 12% waste for GAF Timberline HDZ SG Shingles
   const numberOfStories = measurements.number_of_stories || 1;
   
   // Calculate squares needed (including waste factor)

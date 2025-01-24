@@ -3,27 +3,55 @@ import { Estimate as DBEstimate, EstimateItem } from "@/types/database";
 import { Estimate as UIEstimate } from '../types/estimate';
 
 export async function createEstimate(estimate: Omit<DBEstimate, 'id' | 'created_at' | 'updated_at'>) {
-  const { data, error } = await supabase
-    .from('estimates')
-    .insert(estimate)
-    .select()
-    .single();
+  try {
+    console.log('Creating estimate with data:', estimate);
+    
+    const { data, error } = await supabase
+      .from('estimates')
+      .insert(estimate)
+      .select()
+      .single();
 
-  if (error) {
+    if (error) {
+      console.error('Error creating estimate:', error);
+      if (error.message.includes('Invalid API key')) {
+        // Try enabling RLS policy for anon access
+        throw new Error('Database access error - please check Supabase RLS policies');
+      }
+      throw error;
+    }
+
+    console.log('Successfully created estimate:', data);
+    return data;
+  } catch (error) {
+    console.error('Error in createEstimate:', error);
     throw error;
   }
-
-  return data;
 }
 
 export async function createEstimateItems(items: Omit<EstimateItem, 'id' | 'created_at' | 'updated_at'>[]) {
-  const { data, error } = await supabase
-    .from('estimate_items')
-    .insert(items)
-    .select();
+  try {
+    console.log('Creating estimate items:', items);
+    
+    const { data, error } = await supabase
+      .from('estimate_items')
+      .insert(items)
+      .select();
 
-  if (error) throw error;
-  return data;
+    if (error) {
+      console.error('Error creating estimate items:', error);
+      if (error.message.includes('Invalid API key')) {
+        throw new Error('Database access error - please check Supabase RLS policies');
+      }
+      throw error;
+    }
+
+    console.log('Successfully created estimate items:', data);
+    return data;
+  } catch (error) {
+    console.error('Error in createEstimateItems:', error);
+    throw error;
+  }
 }
 
 export async function getEstimates() {
@@ -54,13 +82,10 @@ class EstimateService {
       const savedEstimate = await createEstimate({
         customer_name: estimate.customerName,
         address: estimate.address,
-        total_cost: estimate.totalCost,
-        profit_margin: estimate.profitMargin,
+        amount: estimate.totalCost,
+        roofing_type: 'GAF Timberline HDZ SG', // Default roofing type
         status: estimate.status,
-        selected_price_tier: estimate.selectedPriceTier,
-        measurements: estimate.measurements,
-        material_costs: estimate.materialCosts,
-        labor_costs: estimate.laborCosts
+        date: estimate.date
       });
 
       if (!savedEstimate?.id) {
@@ -70,10 +95,11 @@ class EstimateService {
       // Then, save all the estimate items
       await createEstimateItems(estimate.items.map(item => ({
         estimate_id: savedEstimate.id,
-        name: item.name,
+        description: item.name,
         quantity: item.quantity,
         unit: item.unit,
-        price: item.price
+        unit_price: item.price,
+        total: item.quantity * item.price
       })));
 
       return {
@@ -93,14 +119,14 @@ class EstimateService {
         id: dbEstimate.id,
         customerName: dbEstimate.customer_name,
         address: dbEstimate.address,
-        date: dbEstimate.created_at,
-        status: dbEstimate.status,
-        totalCost: dbEstimate.total_cost,
-        profitMargin: dbEstimate.profit_margin,
-        selectedPriceTier: dbEstimate.selected_price_tier,
-        measurements: dbEstimate.measurements,
-        materialCosts: dbEstimate.material_costs,
-        laborCosts: dbEstimate.labor_costs,
+        date: dbEstimate.date || new Date().toLocaleDateString(),
+        status: dbEstimate.status as 'pending' | 'approved' | 'sent',
+        totalCost: dbEstimate.amount,
+        profitMargin: 0, // Default value since it's not stored in DB
+        selectedPriceTier: 'standard', // Default value since it's not stored in DB
+        measurements: {}, // Empty object since measurements are not stored in DB
+        materialCosts: { base: 0, withProfit: 0 }, // Default values
+        laborCosts: { base: 0, withProfit: 0 }, // Default values
         items: [] // We'll load items separately if needed
       }));
     } catch (error) {

@@ -275,12 +275,29 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
   const zipSealOurCost = 28.25;
   const zipSealCost = zipSealSelected ? zipSealQuantity * zipSealRetailPrice : 0;
 
-  // Calculate total material cost using retail prices
+  // Calculate total add-ons costs
+  const totalAddOnsBaseCost = (
+    (isRidgeVentSelected ? ridgeVentQuantity * ridgeVentOurCost : 0) +
+    (offRidgeVentSelected ? offRidgeVentQuantity * offRidgeVentOurCost : 0) +
+    (gooseneck4Selected ? gooseneck4Quantity * gooseneck4OurCost : 0) +
+    (gooseneck10Selected ? gooseneck10Quantity * gooseneck10OurCost : 0) +
+    (leadFlashing15Selected ? leadFlashing15Quantity * leadFlashing15OurCost : 0) +
+    (leadFlashing2Selected ? leadFlashing2Quantity * leadFlashing2OurCost : 0) +
+    (leadFlashing3Selected ? leadFlashing3Quantity * leadFlashing3OurCost : 0) +
+    (bulletBoot15Selected ? bulletBoot15Quantity * bulletBoot15OurCost : 0) +
+    (bulletBoot2Selected ? bulletBoot2Quantity * bulletBoot2OurCost : 0) +
+    (bulletBoot3Selected ? bulletBoot3Quantity * bulletBoot3OurCost : 0) +
+    (bulletBoot4Selected ? bulletBoot4Quantity * bulletBoot4OurCost : 0) +
+    (zipSealSelected ? zipSealQuantity * zipSealOurCost : 0)
+  );
+
+  const totalAddOnsProfit = totalAddOnsBaseCost * (profitMargin / 100);
+  const totalAddOnsCost = totalAddOnsBaseCost + totalAddOnsProfit;
+
+  // Update total material cost to include both standard materials and add-ons
   const totalMaterialCost = shinglesCost + underlaymentCost + starterShingleCost + sealARidgeCost + acmGalvalumeDripEdgeCost + 
-    coilNailsCost + smallCoilNailsCost + plasticCapNailsCost + geocelSealantCost + karnakTarCost + ridgeVentCost +
-    offRidgeVentCost + gooseneck4Cost + gooseneck10Cost + leadFlashing15Cost + leadFlashing2Cost + leadFlashing3Cost +
-    bulletBoot15Cost + bulletBoot2Cost + bulletBoot3Cost + bulletBoot4Cost + zipSealCost + libertyBaseSheetCost + libertyCapSheetCost +
-    isoBoardCost + baseCapInstallCost;
+    coilNailsCost + smallCoilNailsCost + plasticCapNailsCost + geocelSealantCost + karnakTarCost + libertyBaseSheetCost + 
+    libertyCapSheetCost + isoBoardCost + baseCapInstallCost + totalAddOnsCost;
 
   // Calculate labor based on pitch
   const laborMultiplier = pitch <= 7 ? 1 : pitch <= 9 ? 1.2 : pitch <= 12 ? 1.5 : 2;
@@ -1548,6 +1565,7 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
                           </div>
                           <div className="mt-4 text-xs space-y-2">
                             <div className="text-gray-600 font-medium border-b pb-1">Material Cost Breakdown:</div>
+                            {/* Base materials */}
                             <div>
                               <div className="flex justify-between font-medium">
                                 <span>{selectedShingle}</span>
@@ -1562,6 +1580,8 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
                                 )}
                               </div>
                             </div>
+
+                            {/* Standard materials */}
                             <div>
                               <div className="flex justify-between font-medium">
                                 <span>GAF Weatherwatch Ice & Water Shield</span>
@@ -1576,6 +1596,7 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
                                 )}
                               </div>
                             </div>
+
                             <div>
                               <div className="flex justify-between font-medium">
                                 <span>GAF ProStart Starter Shingle Strip</span>
@@ -1590,12 +1611,13 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
                                 )}
                               </div>
                             </div>
+
                             <div>
                               <div className="flex justify-between font-medium">
                                 <span>GAF Seal-A-Ridge</span>
                                 <span>${formatCurrency(Math.ceil(((measurements.ridges ?? 0) + (measurements.hips ?? 0)) / 20) * 65.00 * (1 + profitMargin / 100))}</span>
                               </div>
-                              <div className="text-gray-500 text-[11px] pl-2" title="Base cost calculation for GAF Seal-A-Ridge">
+                              <div className="text-gray-500 text-[11px] pl-2">
                                 Base Cost: ${formatCurrency(Math.ceil(((measurements.ridges ?? 0) + (measurements.hips ?? 0)) / 20) * 65.00)} ($65.00/BD × {formatQuantity(Math.ceil(((measurements.ridges ?? 0) + (measurements.hips ?? 0)) / 20))} BD)
                                 {profitMargin > 0 && (
                                   <span className="text-green-600 ml-2">
@@ -1604,6 +1626,286 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
                                 )}
                               </div>
                             </div>
+
+                            {/* Add-ons section */}
+                            {(isRidgeVentSelected || offRidgeVentSelected || gooseneck4Selected || gooseneck10Selected || 
+                              leadFlashing15Selected || leadFlashing2Selected || leadFlashing3Selected || bulletBoot15Selected || 
+                              bulletBoot2Selected || bulletBoot3Selected || bulletBoot4Selected || zipSealSelected) && (
+                              <div className="mt-4">
+                                <div className="text-gray-600 font-medium border-b pb-1">Add-ons:</div>
+                                {isRidgeVentSelected && (
+                                  <div>
+                                    <div className="flex justify-between font-medium">
+                                      <span>GAF Cobra Rigid Vent</span>
+                                      <span>${formatCurrency(ridgeVentQuantity * ridgeVentOurCost * (1 + profitMargin / 100))}</span>
+                                    </div>
+                                    <div className="text-gray-500 text-[11px] pl-2">
+                                      Base Cost: ${formatCurrency(ridgeVentQuantity * ridgeVentOurCost)} ($18.89/PC × {ridgeVentQuantity} PC)
+                                      {profitMargin > 0 && (
+                                        <span className="text-green-600 ml-2">
+                                          (+${formatCurrency(ridgeVentQuantity * ridgeVentOurCost * profitMargin / 100)})
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {offRidgeVentSelected && (
+                                  <div>
+                                    <div className="flex justify-between font-medium">
+                                      <span>TAMCO Galvanized Steel Off Ridge Vent</span>
+                                      <span>${formatCurrency(offRidgeVentQuantity * offRidgeVentOurCost * (1 + profitMargin / 100))}</span>
+                                    </div>
+                                    <div className="text-gray-500 text-[11px] pl-2">
+                                      Base Cost: ${formatCurrency(offRidgeVentQuantity * offRidgeVentOurCost)} ($75.00/PC × {offRidgeVentQuantity} PC)
+                                      {profitMargin > 0 && (
+                                        <span className="text-green-600 ml-2">
+                                          (+${formatCurrency(offRidgeVentQuantity * offRidgeVentOurCost * profitMargin / 100)})
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {gooseneck4Selected && (
+                                  <div>
+                                    <div className="flex justify-between font-medium">
+                                      <span>Galvanized Steel Gooseneck Exhaust Vent</span>
+                                      <span>${formatCurrency(gooseneck4Quantity * gooseneck4OurCost * (1 + profitMargin / 100))}</span>
+                                    </div>
+                                    <div className="text-gray-500 text-[11px] pl-2">
+                                      Base Cost: ${formatCurrency(gooseneck4Quantity * gooseneck4OurCost)} ($38.50/EA × {gooseneck4Quantity} EA)
+                                      {profitMargin > 0 && (
+                                        <span className="text-green-600 ml-2">
+                                          (+${formatCurrency(gooseneck4Quantity * gooseneck4OurCost * profitMargin / 100)})
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {gooseneck10Selected && (
+                                  <div>
+                                    <div className="flex justify-between font-medium">
+                                      <span>Galvalume Gooseneck Exhaust Vent</span>
+                                      <span>${formatCurrency(gooseneck10Quantity * gooseneck10OurCost * (1 + profitMargin / 100))}</span>
+                                    </div>
+                                    <div className="text-gray-500 text-[11px] pl-2">
+                                      Base Cost: ${formatCurrency(gooseneck10Quantity * gooseneck10OurCost)} ($48.88/EA × {gooseneck10Quantity} EA)
+                                      {profitMargin > 0 && (
+                                        <span className="text-green-600 ml-2">
+                                          (+${formatCurrency(gooseneck10Quantity * gooseneck10OurCost * profitMargin / 100)})
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {leadFlashing15Selected && (
+                                  <div>
+                                    <div className="flex justify-between font-medium">
+                                      <span>Lead Pipe Flashing - 2.5# - 1 1/2"</span>
+                                      <span>${formatCurrency(leadFlashing15Quantity * leadFlashing15OurCost * (1 + profitMargin / 100))}</span>
+                                    </div>
+                                    <div className="text-gray-500 text-[11px] pl-2">
+                                      Base Cost: ${formatCurrency(leadFlashing15Quantity * leadFlashing15OurCost)} ($13.20/EA × {leadFlashing15Quantity} EA)
+                                      {profitMargin > 0 && (
+                                        <span className="text-green-600 ml-2">
+                                          (+${formatCurrency(leadFlashing15Quantity * leadFlashing15OurCost * profitMargin / 100)})
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {leadFlashing2Selected && (
+                                  <div>
+                                    <div className="flex justify-between font-medium">
+                                      <span>Lead Pipe Flashing - 2"</span>
+                                      <span>${formatCurrency(leadFlashing2Quantity * leadFlashing2OurCost * (1 + profitMargin / 100))}</span>
+                                    </div>
+                                    <div className="text-gray-500 text-[11px] pl-2">
+                                      Base Cost: ${formatCurrency(leadFlashing2Quantity * leadFlashing2OurCost)} ($14.35/EA × {leadFlashing2Quantity} EA)
+                                      {profitMargin > 0 && (
+                                        <span className="text-green-600 ml-2">
+                                          (+${formatCurrency(leadFlashing2Quantity * leadFlashing2OurCost * profitMargin / 100)})
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {leadFlashing3Selected && (
+                                  <div>
+                                    <div className="flex justify-between font-medium">
+                                      <span>Lead Pipe Flashing - 3"</span>
+                                      <span>${formatCurrency(leadFlashing3Quantity * leadFlashing3OurCost * (1 + profitMargin / 100))}</span>
+                                    </div>
+                                    <div className="text-gray-500 text-[11px] pl-2">
+                                      Base Cost: ${formatCurrency(leadFlashing3Quantity * leadFlashing3OurCost)} ($18.95/EA × {leadFlashing3Quantity} EA)
+                                      {profitMargin > 0 && (
+                                        <span className="text-green-600 ml-2">
+                                          (+${formatCurrency(leadFlashing3Quantity * leadFlashing3OurCost * profitMargin / 100)})
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {bulletBoot15Selected && (
+                                  <div>
+                                    <div className="flex justify-between font-medium">
+                                      <span>Bullet Boot Pipe Flashing - 1 1/2"</span>
+                                      <span>${formatCurrency(bulletBoot15Quantity * bulletBoot15OurCost * (1 + profitMargin / 100))}</span>
+                                    </div>
+                                    <div className="text-gray-500 text-[11px] pl-2">
+                                      Base Cost: ${formatCurrency(bulletBoot15Quantity * bulletBoot15OurCost)} ($20.28/EA × {bulletBoot15Quantity} EA)
+                                      {profitMargin > 0 && (
+                                        <span className="text-green-600 ml-2">
+                                          (+${formatCurrency(bulletBoot15Quantity * bulletBoot15OurCost * profitMargin / 100)})
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {bulletBoot2Selected && (
+                                  <div>
+                                    <div className="flex justify-between font-medium">
+                                      <span>Bullet Boot Pipe Flashing - 2"</span>
+                                      <span>${formatCurrency(bulletBoot2Quantity * bulletBoot2OurCost * (1 + profitMargin / 100))}</span>
+                                    </div>
+                                    <div className="text-gray-500 text-[11px] pl-2">
+                                      Base Cost: ${formatCurrency(bulletBoot2Quantity * bulletBoot2OurCost)} ($20.64/EA × {bulletBoot2Quantity} EA)
+                                      {profitMargin > 0 && (
+                                        <span className="text-green-600 ml-2">
+                                          (+${formatCurrency(bulletBoot2Quantity * bulletBoot2OurCost * profitMargin / 100)})
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {bulletBoot3Selected && (
+                                  <div>
+                                    <div className="flex justify-between font-medium">
+                                      <span>Bullet Boot Pipe Flashing - 3"</span>
+                                      <span>${formatCurrency(bulletBoot3Quantity * bulletBoot3OurCost * (1 + profitMargin / 100))}</span>
+                                    </div>
+                                    <div className="text-gray-500 text-[11px] pl-2">
+                                      Base Cost: ${formatCurrency(bulletBoot3Quantity * bulletBoot3OurCost)} ($43.00/EA × {bulletBoot3Quantity} EA)
+                                      {profitMargin > 0 && (
+                                        <span className="text-green-600 ml-2">
+                                          (+${formatCurrency(bulletBoot3Quantity * bulletBoot3OurCost * profitMargin / 100)})
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {bulletBoot4Selected && (
+                                  <div>
+                                    <div className="flex justify-between font-medium">
+                                      <span>Bullet Boot Pipe Flashing - 4"</span>
+                                      <span>${formatCurrency(bulletBoot4Quantity * bulletBoot4OurCost * (1 + profitMargin / 100))}</span>
+                                    </div>
+                                    <div className="text-gray-500 text-[11px] pl-2">
+                                      Base Cost: ${formatCurrency(bulletBoot4Quantity * bulletBoot4OurCost)} ($43.49/EA × {bulletBoot4Quantity} EA)
+                                      {profitMargin > 0 && (
+                                        <span className="text-green-600 ml-2">
+                                          (+${formatCurrency(bulletBoot4Quantity * bulletBoot4OurCost * profitMargin / 100)})
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {zipSealSelected && (
+                                  <div>
+                                    <div className="flex justify-between font-medium">
+                                      <span>Golden Rule ZipSeal Large EPDM Retrofit Electric Mast Flashing</span>
+                                      <span>${formatCurrency(zipSealQuantity * zipSealOurCost * (1 + profitMargin / 100))}</span>
+                                    </div>
+                                    <div className="text-gray-500 text-[11px] pl-2">
+                                      Base Cost: ${formatCurrency(zipSealQuantity * zipSealOurCost)} ($28.25/EA × {zipSealQuantity} EA)
+                                      {profitMargin > 0 && (
+                                        <span className="text-green-600 ml-2">
+                                          (+${formatCurrency(zipSealQuantity * zipSealOurCost * profitMargin / 100)})
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {isLibertyBaseSheetSelected && (
+                                  <div>
+                                    <div className="flex justify-between font-medium">
+                                      <span>GAF Liberty SBS SA Base Sheet</span>
+                                      <span>${formatCurrency(libertyBaseSheetQuantity * libertyBaseSheetOurCost * (1 + profitMargin / 100))}</span>
+                                    </div>
+                                    <div className="text-gray-500 text-[11px] pl-2">
+                                      Base Cost: ${formatCurrency(libertyBaseSheetQuantity * libertyBaseSheetOurCost)} ($112.74/RL × {libertyBaseSheetQuantity} RL)
+                                      {profitMargin > 0 && (
+                                        <span className="text-green-600 ml-2">
+                                          (+${formatCurrency(libertyBaseSheetQuantity * libertyBaseSheetOurCost * profitMargin / 100)})
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {isLibertyCapSheetSelected && (
+                                  <div>
+                                    <div className="flex justify-between font-medium">
+                                      <span>GAF Liberty SBS SA Cap Sheet</span>
+                                      <span>${formatCurrency(libertyCapSheetQuantity * libertyCapSheetOurCost * (1 + profitMargin / 100))}</span>
+                                    </div>
+                                    <div className="text-gray-500 text-[11px] pl-2">
+                                      Base Cost: ${formatCurrency(libertyCapSheetQuantity * libertyCapSheetOurCost)} ($115.08/RL × {libertyCapSheetQuantity} RL)
+                                      {profitMargin > 0 && (
+                                        <span className="text-green-600 ml-2">
+                                          (+${formatCurrency(libertyCapSheetQuantity * libertyCapSheetOurCost * profitMargin / 100)})
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {isoBoardSelected && (
+                                  <div>
+                                    <div className="flex justify-between font-medium">
+                                      <span>ISO Board Install</span>
+                                      <span>${formatCurrency(isoBoardQuantity * isoBoardOurCost * (1 + profitMargin / 100))}</span>
+                                    </div>
+                                    <div className="text-gray-500 text-[11px] pl-2">
+                                      Base Cost: ${formatCurrency(isoBoardQuantity * isoBoardOurCost)} ($54.50/EA × {isoBoardQuantity} EA)
+                                      {profitMargin > 0 && (
+                                        <span className="text-green-600 ml-2">
+                                          (+${formatCurrency(isoBoardQuantity * isoBoardOurCost * profitMargin / 100)})
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {baseCapInstallSelected && (
+                                  <div>
+                                    <div className="flex justify-between font-medium">
+                                      <span>Base & Cap Install SA</span>
+                                      <span>${formatCurrency(baseCapInstallQuantity * baseCapInstallOurCost * (1 + profitMargin / 100))}</span>
+                                    </div>
+                                    <div className="text-gray-500 text-[11px] pl-2">
+                                      Base Cost: ${formatCurrency(baseCapInstallQuantity * baseCapInstallOurCost)} ($109.00/EA × {baseCapInstallQuantity} EA)
+                                      {profitMargin > 0 && (
+                                        <span className="text-green-600 ml-2">
+                                          (+${formatCurrency(baseCapInstallQuantity * baseCapInstallOurCost * profitMargin / 100)})
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            )}
                           </div>
                         </div>
 

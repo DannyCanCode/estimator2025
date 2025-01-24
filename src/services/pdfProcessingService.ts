@@ -16,6 +16,8 @@ interface BackendResponse {
     percentage: number;
   }>;
   waste_percentage: number;
+  longitude?: number;
+  latitude?: number;
 }
 
 export const processPdfFile = async (
@@ -29,7 +31,7 @@ export const processPdfFile = async (
     const formData = new FormData();
     formData.append('file', file);
 
-    const response = await fetch('http://localhost:3001/api/process-pdf', {
+    const response = await fetch('http://localhost:30002/api/process-pdf', {
       method: 'POST',
       body: formData,
     });
@@ -57,7 +59,9 @@ export const processPdfFile = async (
         area: pitch.area,
         percentage: pitch.percentage
       })) || [],
-      waste_percentage: data.waste_percentage || 12
+      waste_percentage: data.waste_percentage || 12,
+      longitude: data.longitude,
+      latitude: data.latitude
     };
 
     console.log('Final measurements:', JSON.stringify(measurements, null, 2));

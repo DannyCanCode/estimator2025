@@ -4,42 +4,33 @@ export interface Report {
   id: string;
   file_path: string;
   original_filename: string;
-  status: string;
-  error_message: string | null;
   metadata: any;
-  processed_text: string | null;
+  processed_text: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
   created_at: string;
   updated_at: string;
 }
 
 export interface Estimate {
   id: string;
-  created_at: string;
-  updated_at: string;
   customer_name: string;
   address: string;
-  total_cost: number;
-  profit_margin: number;
+  amount: number;
+  roofing_type: string;
   status: 'pending' | 'approved' | 'sent';
-  selected_price_tier: 'standard' | 'economy' | 'premium' | 'custom';
-  measurements: RoofMeasurements;
-  material_costs: {
-    base: number;
-    withProfit: number;
-  };
-  labor_costs: {
-    base: number;
-    withProfit: number;
-  };
+  date: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface EstimateItem {
   id: string;
-  created_at: string;
-  updated_at: string;
   estimate_id: string;
-  name: string;
+  description: string;
   quantity: number;
   unit: string;
-  price: number;
+  unit_price: number;
+  total: number;
+  created_at: string;
+  updated_at: string;
 }
