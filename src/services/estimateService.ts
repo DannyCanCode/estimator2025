@@ -8,7 +8,20 @@ export async function createEstimate(estimate: Omit<DBEstimate, 'id' | 'created_
     
     const { data, error } = await supabase
       .from('estimates')
-      .insert(estimate)
+      .insert({
+        customer_name: estimate.customer_name,
+        address: estimate.address,
+        amount: estimate.amount,
+        roofing_type: estimate.roofing_type,
+        status: estimate.status,
+        date: estimate.date,
+        profit_margin: estimate.profit_margin,
+        selected_price_tier: estimate.selected_price_tier,
+        measurements: estimate.measurements,
+        material_costs: estimate.material_costs,
+        labor_costs: estimate.labor_costs,
+        report_id: null
+      })
       .select()
       .single();
 
@@ -61,7 +74,7 @@ export async function getEstimates() {
     .order('created_at', { ascending: false });
 
   if (error) throw error;
-  return data;
+  return data as DBEstimate[];
 }
 
 export async function getEstimateItems(estimateId: string) {
@@ -72,20 +85,26 @@ export async function getEstimateItems(estimateId: string) {
     .order('created_at', { ascending: true });
 
   if (error) throw error;
-  return data;
+  return data as EstimateItem[];
 }
 
 class EstimateService {
   async saveEstimate(estimate: UIEstimate): Promise<UIEstimate> {
     try {
-      // First, save the estimate data
+      // First, save the estimate data with all calculation details
       const savedEstimate = await createEstimate({
         customer_name: estimate.customerName,
         address: estimate.address,
         amount: estimate.totalCost,
-        roofing_type: 'GAF Timberline HDZ SG', // Default roofing type
+        roofing_type: 'GAF Timberline HDZ SG',
         status: estimate.status,
-        date: estimate.date
+        date: estimate.date,
+        profit_margin: estimate.profitMargin,
+        selected_price_tier: estimate.selectedPriceTier,
+        measurements: estimate.measurements,
+        material_costs: estimate.materialCosts,
+        labor_costs: estimate.laborCosts,
+        report_id: null
       });
 
       if (!savedEstimate?.id) {
@@ -93,14 +112,16 @@ class EstimateService {
       }
 
       // Then, save all the estimate items
-      await createEstimateItems(estimate.items.map(item => ({
-        estimate_id: savedEstimate.id,
-        description: item.name,
-        quantity: item.quantity,
-        unit: item.unit,
-        unit_price: item.price,
-        total: item.quantity * item.price
-      })));
+      if (estimate.items.length > 0) {
+        await createEstimateItems(estimate.items.map(item => ({
+          estimate_id: savedEstimate.id,
+          description: item.name,
+          quantity: item.quantity,
+          unit: item.unit,
+          unit_price: item.price,
+          total: item.quantity * item.price
+        })));
+      }
 
       return {
         ...estimate,
@@ -118,15 +139,15 @@ class EstimateService {
       return estimates.map(dbEstimate => ({
         id: dbEstimate.id,
         customerName: dbEstimate.customer_name,
-        address: dbEstimate.address,
+        address: dbEstimate.address || '',
         date: dbEstimate.date || new Date().toLocaleDateString(),
-        status: dbEstimate.status as 'pending' | 'approved' | 'sent',
+        status: dbEstimate.status,
         totalCost: dbEstimate.amount,
-        profitMargin: 0, // Default value since it's not stored in DB
-        selectedPriceTier: 'standard', // Default value since it's not stored in DB
-        measurements: {}, // Empty object since measurements are not stored in DB
-        materialCosts: { base: 0, withProfit: 0 }, // Default values
-        laborCosts: { base: 0, withProfit: 0 }, // Default values
+        profitMargin: dbEstimate.profit_margin,
+        selectedPriceTier: dbEstimate.selected_price_tier,
+        measurements: dbEstimate.measurements,
+        materialCosts: dbEstimate.material_costs,
+        laborCosts: dbEstimate.labor_costs,
         items: [] // We'll load items separately if needed
       }));
     } catch (error) {
@@ -137,29 +158,55 @@ class EstimateService {
 
   async generatePDF(estimate: UIEstimate): Promise<Blob> {
     try {
-      const response = await fetch('/api/estimates/generate-pdf', {
+      // Format the data for PDF generation
+      const pdfData = {
+        ...estimate,
+        companyInfo: {
+          name: '3MG Roofing',
+          address: '1127 Solana Ave',
+          city: 'Winter Park',
+          state: 'FL',
+          zip: '32789',
+          phone: '407-420-0201',
+          email: 'Daniel.Pedraza@3MGRoofing.com',
+          representative: 'Daniel Pedraza-T',
+          repPhone: '(407) 495-2386'
+        },
+        pricing: {
+          materials: estimate.items.reduce((acc, item) => ({
+            ...acc,
+            [item.name.toLowerCase().replace(/\s+/g, '_')]: {
+              price: item.price,
+              quantity: item.quantity,
+              unit: item.unit,
+              total: item.price * item.quantity
+            }
+          }), {}),
+          totalMaterialCost: estimate.materialCosts.base,
+          totalMaterialWithProfit: estimate.materialCosts.withProfit,
+          laborCost: estimate.laborCosts.base,
+          laborWithProfit: estimate.laborCosts.withProfit,
+          totalCost: estimate.totalCost
+        }
+      };
+
+      const response = await fetch('http://localhost:8000/api/generate-pdf', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          ...estimate,
-          companyInfo: {
-            name: '3MG Roofing',
-            address: '1127 Solana Ave',
-            city: 'Winter Park',
-            state: 'FL',
-            zip: '32789',
-            phone: '407-420-0201',
-            email: 'Daniel.Pedraza@3MGRoofing.com',
-            representative: 'Daniel Pedraza-T',
-            repPhone: '(407) 495-2386'
-          }
-        }),
+        body: JSON.stringify(pdfData),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to generate PDF');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to generate PDF');
+      }
+
+      // Check if the response is a PDF
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/pdf')) {
+        throw new Error('Invalid response format');
       }
 
       return response.blob();

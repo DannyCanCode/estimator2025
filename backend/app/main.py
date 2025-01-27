@@ -26,9 +26,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include routers
-app.include_router(pdf.router, prefix="/api", tags=["pdf"])
-app.include_router(estimate.router, prefix="/api", tags=["estimate"])
+# Include routers without /api prefix since it's handled by Vite proxy
+app.include_router(pdf.router, tags=["pdf"])
+app.include_router(estimate.router, tags=["estimate"])
 
 @app.get("/")
 async def root():

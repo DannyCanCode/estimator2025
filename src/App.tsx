@@ -1,21 +1,25 @@
-import React from 'react'
-import { Header } from './components/Header'
-import { Sidebar } from './components/Sidebar'
-import { Dashboard } from './components/Dashboard'
-import './App.css'
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { Sidebar } from './components/Sidebar';
+import { Dashboard } from './components/Dashboard';
+import { EstimatesTab } from './components/EstimatesTab';
+import { Settings } from './components/Settings';
+import './App.css';
 
-function App() {
+export function App() {
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      <div className="flex">
-        <Sidebar />
-        <main className="flex-1 p-8">
-          <Dashboard />
+    <Router>
+      <div className="flex min-h-screen">
+        <aside className="w-64 border-r bg-background">
+          <Sidebar />
+        </aside>
+        <main className="flex-1">
+          <Routes>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/estimates" element={<EstimatesTab />} />
+            <Route path="/settings" element={<Settings />} />
+          </Routes>
         </main>
       </div>
-    </div>
-  )
+    </Router>
+  );
 }
-
-export default App

@@ -14,13 +14,25 @@ export interface Report {
 export interface Estimate {
   id: string;
   customer_name: string;
-  address: string;
+  address: string | null;
   amount: number;
   roofing_type: string;
   status: 'pending' | 'approved' | 'sent';
-  date: string;
-  created_at: string;
-  updated_at: string;
+  date: string | null;
+  report_id: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+  profit_margin: number;
+  selected_price_tier: 'standard' | 'economy' | 'premium' | 'custom';
+  measurements: RoofMeasurements;
+  material_costs: {
+    base: number;
+    withProfit: number;
+  };
+  labor_costs: {
+    base: number;
+    withProfit: number;
+  };
 }
 
 export interface EstimateItem {
