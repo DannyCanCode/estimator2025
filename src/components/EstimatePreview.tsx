@@ -98,8 +98,16 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
   const libertyCapSheetOurCost = 115.08;  // Updated from 115.08
   const libertyCapSheetCost = isLibertyCapSheetSelected ? libertyCapSheetQuantity * libertyCapSheetRetailPrice : 0;
 
+  // Initialize with measurements.property_address
   const [customerName, setCustomerName] = useState('');
   const [customerAddress, setCustomerAddress] = useState('');
+
+  // Update address when measurements change
+  useEffect(() => {
+    if (measurements?.property_address && customerAddress === '') {
+      setCustomerAddress(measurements.property_address);
+    }
+  }, [measurements?.property_address]); // Only run when property_address changes
 
   // Add coordinates display at the top
   const hasCoordinates = measurements.longitude !== undefined && measurements.latitude !== undefined;
@@ -312,9 +320,6 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
   // Total cost
   const totalCost = shinglesCost + underlaymentCost + ridgeCapsCost + laborCost;
 
-  console.log('Rake Length:', rakeLength);
-  console.log('Eave Length:', eaveLength);
-
   // Calculate adjusted profits
   const adjustedMaterialProfit = totalMaterialCost * (profitMargin / 100);
   const adjustedLaborProfit = laborCost * (profitMargin / 100);
@@ -498,34 +503,32 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
 
   // Customer Information Section
   const customerInformationSection = (
-    <div className="mb-6">
-      <div className="space-y-4">
-        <div>
-          <label htmlFor="customerName" className="block text-sm font-medium text-gray-700">
-            Customer Name
-          </label>
-          <input
-            type="text"
-            id="customerName"
-            value={customerName}
-            onChange={(e) => setCustomerName(e.target.value)}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-            placeholder="Enter customer name"
-          />
-        </div>
-        <div>
-          <label htmlFor="customerAddress" className="block text-sm font-medium text-gray-700">
-            Customer Address
-          </label>
-          <input
-            type="text"
-            id="customerAddress"
-            value={customerAddress}
-            onChange={(e) => setCustomerAddress(e.target.value)}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-            placeholder="Enter customer address"
-          />
-        </div>
+    <div className="mt-4">
+      <div className="mb-4">
+        <label htmlFor="customerName" className="block text-sm font-medium text-gray-700">
+          Customer Name
+        </label>
+        <input
+          type="text"
+          id="customerName"
+          value={customerName}
+          onChange={(e) => setCustomerName(e.target.value)}
+          placeholder="Enter customer name"
+          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+        />
+      </div>
+      <div className="mb-4">
+        <label htmlFor="customerAddress" className="block text-sm font-medium text-gray-700">
+          Customer Address
+        </label>
+        <input
+          type="text"
+          id="customerAddress"
+          value={customerAddress}
+          onChange={(e) => setCustomerAddress(e.target.value)}
+          placeholder="Enter customer address"
+          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+        />
       </div>
     </div>
   );
@@ -562,7 +565,7 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
                 placeholder="Enter customer name"
               />
             </div>
-            <div>
+            <div className="mt-4">
               <label htmlFor="customerAddress" className="block text-sm font-medium text-gray-700">
                 Customer Address
               </label>

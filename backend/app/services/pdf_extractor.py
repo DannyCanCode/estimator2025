@@ -26,7 +26,8 @@ class PDFExtractor:
             'penetrations_perimeter': re.compile(r'Total\s+Penetrations\s+Perimeter\s*=\s*(\d+)\s*ft', re.IGNORECASE),
             'suggested_waste': re.compile(r'(?P<waste_percentage>\d+)%\s*\n\s*(?P<area_sq_ft>\d+)\s*\n\s*(?P<suggested_squares>\d+\.\d+)', re.IGNORECASE | re.DOTALL),
             'longitude': re.compile(r'Longitude\s*=\s*(-?\d+\.\d+)', re.IGNORECASE),
-            'latitude': re.compile(r'Latitude\s*=\s*(-?\d+\.\d+)', re.IGNORECASE)
+            'latitude': re.compile(r'Latitude\s*=\s*(-?\d+\.\d+)', re.IGNORECASE),
+            'property_address': re.compile(r'(\d+[^,\n]+,[^,\n]+,\s*[A-Z]{2}\s*\d{5}(?:-\d{4})?)', re.IGNORECASE)
         }
 
     def find_measurement_with_count(self, text: str, key: str, length: float) -> Optional[int]:
@@ -211,6 +212,13 @@ class PDFExtractor:
         logger.debug(f"No measurements found, returning ridges: {ridges}, hips: {hips}")
         return ridges, hips
 
+    def extract_property_address(self, text: str) -> str:
+        """Extract property address from text."""
+        match = self.patterns['property_address'].search(text)
+        if match:
+            return match.group(1).strip()
+        return ""
+
     def extract_measurements(self, pdf_content: bytes) -> Dict[str, Any]:
         """Extract all measurements from the PDF content bytes."""
         text = self.extract_text(pdf_content)
@@ -220,6 +228,9 @@ class PDFExtractor:
             # Extract areas per pitch first since we need the full text
             areas_per_pitch = self.extract_areas_per_pitch_fallback(text)
             logger.info(f"Extracted areas per pitch: {areas_per_pitch}")
+            
+            # Extract property address
+            property_address = self.extract_property_address(text)
             
             # Extract ridges and hips from full text first
             ridges, hips = self.extract_ridges_and_hips(text)
@@ -240,7 +251,8 @@ class PDFExtractor:
             # Extract other measurements
             matches_found = {
                 'ridges': ridges,
-                'hips': hips
+                'hips': hips,
+                'property_address': property_address
             }
             
             for key in ['total_area', 'predominant_pitch', 'valleys', 'rakes', 'eaves', 'flashing', 'step_flashing']:

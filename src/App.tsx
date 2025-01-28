@@ -2,7 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Sidebar } from './components/Sidebar';
 import { Dashboard } from './components/Dashboard';
 import { EstimatesTab } from './components/EstimatesTab';
-import { Settings } from './components/Settings';
+import Settings from '@/pages/Settings';
 import './App.css';
 
 export function App() {

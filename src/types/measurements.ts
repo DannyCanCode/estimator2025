@@ -14,9 +14,15 @@ export interface RoofMeasurements {
   eaves: number;
   flashing: number;
   step_flashing: number;
-  longitude: number;
-  latitude: number;
+  longitude?: number;
+  latitude?: number;
+  property_address?: string;
   waste_percentage: number;
   areas_per_pitch: PitchArea[];
   pitch_details: Array<{ pitch: string; area: number }>;
+  debug_info?: {
+    extraction_method: string;
+    error?: string;
+    tables_found?: number;
+  };
 } 
