@@ -29,7 +29,7 @@ export const processPdfFile = async (
     const formData = new FormData();
     formData.append('file', file);
 
-    const response = await fetch('http://localhost:3001/api/process-pdf', {
+    const response = await fetch('http://localhost:3008/api/process-pdf', {
       method: 'POST',
       body: formData,
     });
