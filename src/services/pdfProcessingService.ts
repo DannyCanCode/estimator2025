@@ -35,10 +35,16 @@ export const processPdfFile = async (
     });
 
     if (!response.ok) {
-      throw new Error('Failed to process PDF');
+      const errorText = await response.text();
+      throw new Error(`Failed to process PDF: ${errorText || response.statusText}`);
     }
 
     const data = await response.json() as BackendResponse;
+    
+    if (!data || typeof data.total_area === 'undefined') {
+      throw new Error('Invalid response from server: Missing required data');
+    }
+
     console.log('Full response data:', JSON.stringify(data, null, 2));
 
     // Transform the data to match the RoofMeasurements interface
@@ -52,18 +58,13 @@ export const processPdfFile = async (
       eaves: data.eaves || 0,
       flashing: data.flashing || 0,
       step_flashing: data.step_flashing || 0,
-      areas_per_pitch: data.areas_per_pitch?.map(pitch => ({
-        pitch: pitch.pitch,
-        area: pitch.area,
-        percentage: pitch.percentage
-      })) || [],
-      waste_percentage: data.waste_percentage || 12
+      areas_per_pitch: data.areas_per_pitch || [],
+      waste_percentage: data.waste_percentage || 0,
     };
 
-    console.log('Final measurements:', JSON.stringify(measurements, null, 2));
     return { measurements };
   } catch (error) {
     console.error('Error processing PDF:', error);
-    throw error;
+    throw error instanceof Error ? error : new Error('Failed to process PDF');
   }
 };

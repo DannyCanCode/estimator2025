@@ -336,6 +336,16 @@ export function EstimatePreview({ measurements, pricing, additionalMaterials, un
     </div>
   );
 
+  const items: EstimateItem[] = [
+    {
+      name: 'Shingles',
+      quantity: shinglesQuantityNeeded,
+      unit: 'squares',
+      price: shinglesCost
+    },
+    // ... other items
+  ];
+
   return (
     <div className="w-full max-w-4xl mx-auto">
         <Card>

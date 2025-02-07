@@ -228,18 +228,29 @@ export interface Estimate {
   customerName: string;
   address: string;
   date: string;
-  status: 'pending' | 'approved' | 'sent';
+  status: 'pending' | 'completed' | 'cancelled';
   measurements: RoofMeasurements;
   totalCost: number;
   profitMargin: number;
   selectedPriceTier: 'standard' | 'economy' | 'premium' | 'custom';
-  materialCosts: {
-    base: number;
-    withProfit: number;
-  };
-  laborCosts: {
-    base: number;
-    withProfit: number;
-  };
+  materialCosts: Record<string, number>;
+  laborCosts: Record<string, number>;
   items: EstimateItem[];
-} 
+}
+
+export type AdditionalMaterials = {
+  ridgeVent?: boolean;
+  offRidgeVent?: boolean;
+  gooseneck4?: boolean;
+  gooseneck10?: boolean;
+  leadFlashing15?: boolean;
+  leadFlashing2?: boolean;
+  leadFlashing3?: boolean;
+  bulletBoot15?: boolean;
+  bulletBoot2?: boolean;
+  bulletBoot3?: boolean;
+  bulletBoot4?: boolean;
+  zipSeal?: boolean;
+};
+
+export type UnderlaymentType = 'synthetic' | 'felt' | 'premium'; 
