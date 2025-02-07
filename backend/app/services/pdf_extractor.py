@@ -209,64 +209,79 @@ class PDFExtractor:
         logger.debug(f"No measurements found, returning ridges: {ridges}, hips: {hips}")
         return ridges, hips
 
-    def extract_measurements(self, pdf_content: bytes) -> Dict[str, Any]:
-        """Extract all measurements from the PDF content bytes."""
-        text = self.extract_text(pdf_content)
-        logger.debug(f"Extracted text from PDF: {text[:1000]}")  # Log first 1000 chars
-        
+    def extract_measurements(self, pdf_contents: bytes) -> Dict[str, Any]:
+        """Extract measurements from PDF contents."""
         try:
-            # Extract areas per pitch first since we need the full text
+            # Create PDF document from bytes
+            pdf_document = fitz.open(stream=pdf_contents, filetype="pdf")
+            
+            if not pdf_document.page_count:
+                logger.error("PDF document has no pages")
+                raise ValueError("Invalid PDF: Document has no pages")
+
+            # Extract text from all pages
+            text = ""
+            for page in pdf_document:
+                text += page.get_text()
+            
+            if not text:
+                logger.error("No text extracted from PDF")
+                raise ValueError("Invalid PDF: No text could be extracted")
+
+            logger.debug(f"Total extracted text length: {len(text)}")
+            logger.debug(f"First 1000 chars of text:\n{text[:1000]}")
+            logger.debug(f"Last 1000 chars of text:\n{text[-1000:]}")
+
+            # Extract measurements using regex patterns
+            measurements = {}
+            for key, pattern in self.patterns.items():
+                match = pattern.search(text)
+                if match:
+                    if key == 'suggested_waste':
+                        # Handle waste calculation differently
+                        measurements['waste_percentage'] = int(match.group('waste_percentage'))
+                    elif key == 'predominant_pitch':
+                        # Keep pitch as a string
+                        measurements[key] = match.group(1)
+                    else:
+                        # Remove commas and convert to float
+                        value = match.group(1).replace(',', '')
+                        try:
+                            measurements[key] = float(value)
+                        except ValueError:
+                            logger.warning(f"Could not convert {key} value '{value}' to float")
+                            measurements[key] = 0
+                else:
+                    logger.warning(f"No match found for {key}")
+                    # Set default values for required fields
+                    if key == 'total_area':
+                        measurements[key] = 0
+                    elif key == 'predominant_pitch':
+                        measurements[key] = '4/12'  # Default pitch
+
+            # Extract areas per pitch
             areas_per_pitch = self.extract_areas_per_pitch_fallback(text)
-            logger.info(f"Extracted areas per pitch: {areas_per_pitch}")
-            
-            # Extract ridges and hips from full text first
+            measurements['areas_per_pitch'] = areas_per_pitch
+
+            # Extract ridges and hips
             ridges, hips = self.extract_ridges_and_hips(text)
-            
-            # Find Report Summary section
-            summary_match = re.search(r'Report Summary.*?(?=\n\s*\n|\Z)', text, re.DOTALL)
-            if summary_match:
-                summary_text = summary_match.group(0)
-                logger.debug(f"Found Report Summary section: {summary_text}")
-            else:
-                summary_text = text
-                logger.warning("No Report Summary section found, using full text")
-            
-            # If we didn't find both measurements in full text, try summary
-            if ridges == 0 or hips == 0:
-                ridges, hips = self.extract_ridges_and_hips(summary_text)
-            
-            # Extract other measurements
-            matches_found = {
-                'ridges': ridges,
-                'hips': hips
-            }
-            
-            for key in ['total_area', 'predominant_pitch', 'valleys', 'rakes', 'eaves', 'flashing', 'step_flashing']:
-                value = getattr(self, f'extract_{key}')(summary_text)
-                matches_found[key] = value
-                logger.debug(f"Extracted {key}: {value}")
-                if value == 0 or value == "0/12":
-                    # Try searching in full text if not found in summary
-                    value = getattr(self, f'extract_{key}')(text)
-                    matches_found[key] = value
-                    logger.debug(f"Retried {key} in full text: {value}")
-            
-            matches_found["waste_percentage"] = self.extract_waste_percentage(summary_text)
-            matches_found["areas_per_pitch"] = areas_per_pitch
-            
-            # Add pitch_details if we found areas_per_pitch
-            if areas_per_pitch:
-                matches_found["pitch_details"] = [
-                    {"pitch": x["pitch"], "area": x["area"]} for x in areas_per_pitch
-                ]
-            
-            logger.info(f"Final measurements: {matches_found}")
-            return matches_found
-            
+            measurements['ridges'] = ridges
+            measurements['hips'] = hips
+
+            # Set default waste percentage if not found
+            if 'waste_percentage' not in measurements:
+                measurements['waste_percentage'] = 12
+
+            logger.info(f"Final measurements: {measurements}")
+            return measurements
+
         except Exception as e:
-            logger.error(f"Error extracting measurements: {e}")
+            logger.error(f"Error extracting measurements: {str(e)}")
             logger.error(f"Traceback: {traceback.format_exc()}")
-            raise 
+            raise ValueError(f"Failed to extract measurements: {str(e)}")
+        finally:
+            if 'pdf_document' in locals():
+                pdf_document.close()
 
     def extract_total_area(self, text: str) -> float:
         """Extract total area from text."""

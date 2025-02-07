@@ -27,7 +27,7 @@ export const processPdfFile = async (
 
   try {
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('file', file, file.name);
 
     const response = await fetch('http://localhost:3008/api/process-pdf', {
       method: 'POST',
@@ -35,31 +35,34 @@ export const processPdfFile = async (
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Failed to process PDF: ${errorText || response.statusText}`);
+      const errorData = await response.json();
+      const errorMessage = errorData.error || response.statusText;
+      console.error('Server error:', errorMessage);
+      throw new Error(errorMessage);
     }
 
-    const data = await response.json() as BackendResponse;
-    
-    if (!data || typeof data.total_area === 'undefined') {
+    const responseData = await response.json();
+
+    if (!responseData || typeof responseData.total_area === 'undefined') {
+      console.error('Invalid response data:', responseData);
       throw new Error('Invalid response from server: Missing required data');
     }
 
-    console.log('Full response data:', JSON.stringify(data, null, 2));
+    console.log('Full response data:', JSON.stringify(responseData, null, 2));
 
     // Transform the data to match the RoofMeasurements interface
     const measurements: RoofMeasurements = {
-      total_area: data.total_area,
-      predominant_pitch: data.predominant_pitch || '',
-      ridges: data.ridges || 0,
-      hips: data.hips || 0,
-      valleys: data.valleys || 0,
-      rakes: data.rakes || 0,
-      eaves: data.eaves || 0,
-      flashing: data.flashing || 0,
-      step_flashing: data.step_flashing || 0,
-      areas_per_pitch: data.areas_per_pitch || [],
-      waste_percentage: data.waste_percentage || 0,
+      total_area: responseData.total_area,
+      predominant_pitch: responseData.predominant_pitch || '',
+      ridges: responseData.ridges || 0,
+      hips: responseData.hips || 0,
+      valleys: responseData.valleys || 0,
+      rakes: responseData.rakes || 0,
+      eaves: responseData.eaves || 0,
+      flashing: responseData.flashing || 0,
+      step_flashing: responseData.step_flashing || 0,
+      areas_per_pitch: responseData.areas_per_pitch || [],
+      waste_percentage: responseData.waste_percentage || 12,
     };
 
     return { measurements };

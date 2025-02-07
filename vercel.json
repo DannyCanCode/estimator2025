@@ -23,11 +23,11 @@
       "dest": "/backend/app/main.py"
     },
     {
-      "handle": "filesystem"
-    },
-    {
       "src": "/(.*)",
-      "dest": "/index.html"
+      "dest": "/$1"
     }
-  ]
+  ],
+  "env": {
+    "PYTHONPATH": "backend/app"
+  }
 } 
