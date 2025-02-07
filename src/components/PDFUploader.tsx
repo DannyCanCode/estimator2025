@@ -18,7 +18,7 @@ export function PDFUploader({ onProcessed, profitMargin = 0.3, roofingType = 'as
     if (acceptedFiles.length === 0) return;
 
     const file = acceptedFiles[0];
-    if (file.type !== 'application/pdf') {
+    if (!file.name.toLowerCase().endsWith('.pdf')) {
       setError('Please upload a PDF file');
       return;
     }
@@ -42,6 +42,8 @@ export function PDFUploader({ onProcessed, profitMargin = 0.3, roofingType = 'as
     onDrop,
     accept: {
       'application/pdf': ['.pdf'],
+      'application/octet-stream': ['.pdf'],
+      'application/x-pdf': ['.pdf'],
     },
     multiple: false,
   });

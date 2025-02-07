@@ -10,18 +10,20 @@ pdf_extractor = PDFExtractor()
 @router.post("/process-pdf")
 async def process_pdf(file: UploadFile = File(...)):
     """Process uploaded PDF and extract measurements."""
-    logger.info(f"Received file: {file.filename}")
+    # Get original filename, fallback to uploaded filename if not present
+    filename = getattr(file, 'filename', None) or file.filename
+    logger.info(f"Received file: {filename}")
     
     # Check if filename exists and has an extension
-    if not file.filename or '.' not in file.filename:
-        logger.error(f"Invalid filename: {file.filename}")
+    if not filename or '.' not in filename:
+        logger.error(f"Invalid filename: {filename}")
         return JSONResponse(
             status_code=400,
             content={"error": "Invalid file: Missing filename or extension"}
         )
     
     # Check if it's a PDF file
-    file_extension = file.filename.lower().split('.')[-1]
+    file_extension = filename.lower().split('.')[-1]
     if file_extension != 'pdf':
         logger.error(f"Invalid file type: {file_extension}")
         return JSONResponse(
